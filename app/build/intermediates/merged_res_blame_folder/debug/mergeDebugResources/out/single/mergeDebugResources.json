@@ -1,0 +1,262 @@
+[
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_add.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_add.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-hdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\font_gflex_variable.ttf.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\font\\gflex_variable.ttf"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\layout_activity_playlist_detail.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_playlist_detail.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\layout_activity_player.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_player.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\layout_item_playlist.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\item_playlist.xml"
+    },
+    {
+        "merged": "com.miku.player.app-debug-41:/menu_menu_player.xml.flat",
+        "source": "com.miku.player.app-main-43:/menu/menu_player.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\xml_file_paths.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\xml\\file_paths.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_playlist.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_playlist.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-mdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-mdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_launcher_background.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_launcher_background.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\layout_activity_songs.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_songs.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\xml_backup_rules.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\xml\\backup_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_heart_outline.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_heart_outline.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-xxxhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_repeat.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_repeat.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_default_album_art.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_default_album_art.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_bg_miku_waves.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\bg_miku_waves.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_launcher_foreground.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_pause.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_pause.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_playlist_play.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_playlist_play.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_chevron_right.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_chevron_right.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_edit.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_edit.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_miku_logo.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_miku_logo.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\xml_data_extraction_rules.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\xml\\data_extraction_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_more_vert.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_more_vert.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_app_icon.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_app_icon.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\menu_menu_playlist_detail.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\menu\\menu_playlist_detail.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_gradient_scrim.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\gradient_scrim.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\menu_menu_player.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\menu\\menu_player.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_backup.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_backup.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\layout_item_song.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\item_song.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-hdpi_ic_launcher_foreground_full.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-hdpi\\ic_launcher_foreground_full.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-anydpi-v26\\ic_launcher.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_skip_next.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_skip_next.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\layout_activity_playlists.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_playlists.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_keyboard_arrow_down.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_keyboard_arrow_down.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\layout_activity_backup.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_backup.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_shuffle.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_shuffle.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-xxhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_search.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_search.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_heart_filled.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_heart_filled.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-xhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-xxhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-xhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\font_genre_variable.ttf.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\font\\genre_variable.ttf"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_skip_previous.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_skip_previous.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_delete.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_delete.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-xxxhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\layout_activity_favorites.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_favorites.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-xhdpi_ic_launcher_foreground_full.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-xhdpi\\ic_launcher_foreground_full.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-anydpi-v26\\ic_launcher_round.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_bg_icon_circle_primary.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\bg_icon_circle_primary.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\layout_activity_main.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-hdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-hdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_drag_handle.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_drag_handle.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_music_note.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_music_note.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-xxhdpi_ic_launcher_foreground_full.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-xxhdpi\\ic_launcher_foreground_full.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_restore.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_restore.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_playlist_add.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_playlist_add.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-xxxhdpi_ic_launcher_foreground_full.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-xxxhdpi\\ic_launcher_foreground_full.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_play.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_play.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-mdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-mdpi_ic_launcher_foreground_full.png.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-mdpi\\ic_launcher_foreground_full.png"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_folder.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_folder.xml"
+    }
+]

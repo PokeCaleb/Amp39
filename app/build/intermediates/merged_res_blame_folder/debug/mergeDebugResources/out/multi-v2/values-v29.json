@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.miku.player.app-mergeDebugResources-39:/values-v29/values-v29.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\josem\\.gradle\\caches\\9.0.0\\transforms\\cdf5f35e235eb8fec0ed5688bcc242d9\\transformed\\jetified-core-splashscreen-1.0.1\\res\\values-v29\\values-v29.xml",
+                    "from": {
+                        "startLines": "2,7",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,374",
+                        "endLines": "6,8",
+                        "endColumns": "12,12",
+                        "endOffsets": "369,464"
+                    }
+                }
+            ]
+        }
+    ]
+}

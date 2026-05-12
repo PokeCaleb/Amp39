@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/md_theme_background">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/md_theme_surface"
+        app:elevation="0dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            app:title="Listas de reproducción"
+            app:titleTextColor="@color/md_theme_onSurface"
+            app:titleTextAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Grid -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvPlaylists"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingHorizontal="10dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="100dp"
+        android:clipToPadding="false"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+    <!-- FAB create playlist -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabCreatePlaylist"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="100dp"
+        android:src="@drawable/ic_add"
+        android:contentDescription="Nueva lista"
+        app:backgroundTint="@color/md_theme_primaryContainer"
+        app:tint="@color/md_theme_onPrimaryContainer" />
+
+    <!-- Mini Player -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/miniPlayer"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginBottom="12dp"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true"
+        app:cardBackgroundColor="@color/md_theme_surfaceVariant"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="4dp">
+        <View
+            android:id="@+id/miniPlayerProgress"
+            android:layout_width="0dp"
+            android:layout_height="2dp"
+            android:layout_gravity="top"
+            android:background="@color/md_theme_primary" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp">
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivMiniCover"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:src="@drawable/ic_default_album_art"
+                android:scaleType="centerCrop"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Small" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/tvMiniTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Canción"
+                    android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                    android:textColor="@color/md_theme_onSurface" />
+                <TextView
+                    android:id="@+id/tvMiniArtist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Artista"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="@color/md_theme_primary" />
+            </LinearLayout>
+            <ImageButton
+                android:id="@+id/btnMiniPrevious"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_skip_previous"
+                android:tint="@color/md_theme_onSurfaceVariant"
+                android:contentDescription="@string/previous" />
+            <ImageButton
+                android:id="@+id/btnMiniPlayPause"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_play"
+                android:tint="@color/md_theme_onSurface"
+                android:contentDescription="@string/play_pause" />
+            <ImageButton
+                android:id="@+id/btnMiniNext"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_skip_next"
+                android:tint="@color/md_theme_onSurfaceVariant"
+                android:contentDescription="@string/next" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Miku Teal Brand Colors -->
+    <color name="miku_teal">#39C5BB</color>
+    <color name="miku_teal_dark">#00A39A</color>
+    <color name="miku_teal_light">#6FF7F2</color>
+    <color name="miku_teal_container">#003735</color>
+    <color name="miku_on_teal_container">#6FF7F2</color>
+    <color name="miku_cyan">#00BCD4</color>
+    <color name="miku_pink_accent">#FF80AB</color>
+
+    <!-- Dark theme MD3 tokens — Miku teal seed, always dark -->
+    <color name="md_theme_primary">#4DDAD5</color>
+    <color name="md_theme_onPrimary">#003735</color>
+    <color name="md_theme_primaryContainer">#00504E</color>
+    <color name="md_theme_onPrimaryContainer">#6FF7F2</color>
+    <color name="md_theme_secondary">#B0CCCB</color>
+    <color name="md_theme_onSecondary">#1B3534</color>
+    <color name="md_theme_secondaryContainer">#324B4B</color>
+    <color name="md_theme_onSecondaryContainer">#CCE8E7</color>
+    <color name="md_theme_tertiary">#A2C9FE</color>
+    <color name="md_theme_onTertiary">#073153</color>
+    <color name="md_theme_tertiaryContainer">#254872</color>
+    <color name="md_theme_onTertiaryContainer">#D2E4FF</color>
+    <color name="md_theme_error">#FFB4AB</color>
+    <color name="md_theme_onError">#690005</color>
+    <color name="md_theme_errorContainer">#93000A</color>
+    <color name="md_theme_onErrorContainer">#FFDAD6</color>
+    <color name="md_theme_background">#0E1515</color>
+    <color name="md_theme_onBackground">#E0E3E3</color>
+    <color name="md_theme_surface">#0E1515</color>
+    <color name="md_theme_onSurface">#E0E3E3</color>
+    <color name="md_theme_surfaceVariant">#1E2D2D</color>
+    <color name="md_theme_onSurfaceVariant">#BEC9C8</color>
+    <color name="md_theme_outline">#889392</color>
+    <color name="md_theme_outlineVariant">#2E3D3D</color>
+    <color name="md_theme_inverseSurface">#E0E3E3</color>
+    <color name="md_theme_inverseOnSurface">#0E1515</color>
+    <color name="md_theme_inversePrimary">#006A67</color>
+    <color name="md_theme_surfaceTint">#4DDAD5</color>
+
+    <!-- Aliases used by Java code (single definition each) -->
+    <color name="md_theme_light_primary">#4DDAD5</color>
+    <color name="md_theme_light_onPrimary">#003735</color>
+    <color name="md_theme_light_primaryContainer">#00504E</color>
+    <color name="md_theme_light_onPrimaryContainer">#6FF7F2</color>
+    <color name="md_theme_light_secondary">#B0CCCB</color>
+    <color name="md_theme_light_onSecondary">#1B3534</color>
+    <color name="md_theme_light_secondaryContainer">#324B4B</color>
+    <color name="md_theme_light_onSecondaryContainer">#CCE8E7</color>
+    <color name="md_theme_light_tertiary">#A2C9FE</color>
+    <color name="md_theme_light_onTertiary">#073153</color>
+    <color name="md_theme_light_tertiaryContainer">#254872</color>
+    <color name="md_theme_light_onTertiaryContainer">#D2E4FF</color>
+    <color name="md_theme_light_error">#FFB4AB</color>
+    <color name="md_theme_light_onError">#690005</color>
+    <color name="md_theme_light_errorContainer">#93000A</color>
+    <color name="md_theme_light_onErrorContainer">#FFDAD6</color>
+    <color name="md_theme_light_background">#0E1515</color>
+    <color name="md_theme_light_onBackground">#E0E3E3</color>
+    <color name="md_theme_light_surface">#0E1515</color>
+    <color name="md_theme_light_onSurface">#E0E3E3</color>
+    <color name="md_theme_light_surfaceVariant">#1E2D2D</color>
+    <color name="md_theme_light_onSurfaceVariant">#BEC9C8</color>
+    <color name="md_theme_light_outline">#889392</color>
+    <color name="md_theme_light_outlineVariant">#2E3D3D</color>
+    <color name="md_theme_light_inverseSurface">#E0E3E3</color>
+    <color name="md_theme_light_inverseOnSurface">#0E1515</color>
+    <color name="md_theme_light_inversePrimary">#006A67</color>
+    <color name="md_theme_light_surfaceTint">#4DDAD5</color>
+    <color name="md_theme_light_scrim">#000000</color>
+</resources>

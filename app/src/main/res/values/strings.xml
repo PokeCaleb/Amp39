@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Amp39</string>
+    <string name="all_songs">Todas las canciones</string>
+    <string name="playlists">Listas de reproducción</string>
+    <string name="select_folder">Seleccionar carpeta</string>
+    <string name="no_songs_found">No se encontraron canciones</string>
+    <string name="no_playlists">No tienes listas de reproducción</string>
+    <string name="create_playlist">Crear lista</string>
+    <string name="playlist_name">Nombre de la lista</string>
+    <string name="add_to_playlist">Agregar a lista</string>
+    <string name="remove_from_playlist">Quitar de la lista</string>
+    <string name="change_cover">Cambiar carátula</string>
+    <string name="song_added">Canción agregada</string>
+    <string name="playlist_created">Lista creada</string>
+    <string name="delete_playlist">Eliminar lista</string>
+    <string name="cancel">Cancelar</string>
+    <string name="confirm">Confirmar</string>
+    <string name="unknown_artist">Artista desconocido</string>
+    <string name="unknown_album">Álbum desconocido</string>
+    <string name="shuffle">Aleatorio</string>
+    <string name="repeat">Repetir</string>
+    <string name="previous">Anterior</string>
+    <string name="play_pause">Reproducir/Pausar</string>
+    <string name="next">Siguiente</string>
+    <string name="permission_required">Se necesita permiso para acceder a los archivos de audio</string>
+    <string name="grant_permission">Otorgar permiso</string>
+    <string name="songs_count">%d canciones</string>
+    <string name="new_playlist_hint">Nombre de la nueva lista…</string>
+    <string name="favorites">Favoritos</string>
+    <string name="add_to_favorites">Agregar a favoritos</string>
+</resources>
