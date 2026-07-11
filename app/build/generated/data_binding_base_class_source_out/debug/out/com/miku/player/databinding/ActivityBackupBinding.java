@@ -30,9 +30,6 @@ public final class ActivityBackupBinding implements ViewBinding {
   public final MaterialCardView cardImport;
 
   @NonNull
-  public final MaterialCardView cardImportListsOnly;
-
-  @NonNull
   public final ProgressBar progressBar;
 
   @NonNull
@@ -49,13 +46,12 @@ public final class ActivityBackupBinding implements ViewBinding {
 
   private ActivityBackupBinding(@NonNull CoordinatorLayout rootView,
       @NonNull MaterialCardView cardExport, @NonNull MaterialCardView cardImport,
-      @NonNull MaterialCardView cardImportListsOnly, @NonNull ProgressBar progressBar,
-      @NonNull FrameLayout progressOverlay, @NonNull MaterialToolbar toolbar,
-      @NonNull TextView tvLastBackup, @NonNull TextView tvProgress) {
+      @NonNull ProgressBar progressBar, @NonNull FrameLayout progressOverlay,
+      @NonNull MaterialToolbar toolbar, @NonNull TextView tvLastBackup,
+      @NonNull TextView tvProgress) {
     this.rootView = rootView;
     this.cardExport = cardExport;
     this.cardImport = cardImport;
-    this.cardImportListsOnly = cardImportListsOnly;
     this.progressBar = progressBar;
     this.progressOverlay = progressOverlay;
     this.toolbar = toolbar;
@@ -102,12 +98,6 @@ public final class ActivityBackupBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.cardImportListsOnly;
-      MaterialCardView cardImportListsOnly = ViewBindings.findChildViewById(rootView, id);
-      if (cardImportListsOnly == null) {
-        break missingId;
-      }
-
       id = R.id.progressBar;
       ProgressBar progressBar = ViewBindings.findChildViewById(rootView, id);
       if (progressBar == null) {
@@ -139,7 +129,7 @@ public final class ActivityBackupBinding implements ViewBinding {
       }
 
       return new ActivityBackupBinding((CoordinatorLayout) rootView, cardExport, cardImport,
-          cardImportListsOnly, progressBar, progressOverlay, toolbar, tvLastBackup, tvProgress);
+          progressBar, progressOverlay, toolbar, tvLastBackup, tvProgress);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

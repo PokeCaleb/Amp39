@@ -9,250 +9,258 @@
 9        android:targetSdkVersion="34" />
 10
 11    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-11-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:5:5-75
-11-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:5:22-72
+11-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:4:5-75
+11-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:4:22-72
 12    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-12-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:6:5-76
-12-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:6:22-73
+12-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:5:5-76
+12-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:5:22-73
 13    <uses-permission
-13-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:7:5-8:38
+13-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:6:5-7:38
 14        android:name="android.permission.READ_EXTERNAL_STORAGE"
-14-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:7:22-77
+14-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:6:22-77
 15        android:maxSdkVersion="32" />
-15-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:8:9-35
+15-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:7:9-35
 16    <uses-permission
-16-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:9:5-10:38
+16-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:8:5-9:38
 17        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-17-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:9:22-78
+17-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:8:22-78
 18        android:maxSdkVersion="28" />
-18-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:10:9-35
+18-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:9:9-35
 19    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-19-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:11:5-77
-19-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:11:22-74
-20    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-20-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:12:5-13:40
-20-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:12:22-79
-21    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-21-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:14:5-77
-21-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:14:22-74
-22    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-22-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:15:5-92
-22-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:15:22-89
-23    <uses-permission android:name="android.permission.WAKE_LOCK" />
-23-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:16:5-68
-23-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:16:22-65
-24    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-24-->[androidx.media3:media3-exoplayer:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\64afd6471887178d6f2d567be61485ef\transformed\jetified-media3-exoplayer-1.3.1\AndroidManifest.xml:22:5-79
-24-->[androidx.media3:media3-exoplayer:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\64afd6471887178d6f2d567be61485ef\transformed\jetified-media3-exoplayer-1.3.1\AndroidManifest.xml:22:22-76
-25
-26    <permission
-26-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
-27        android:name="com.miku.player.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
-27-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
-28        android:protectionLevel="signature" />
-28-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
-29
-30    <uses-permission android:name="com.miku.player.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-30-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
-30-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
-31
-32    <application
-32-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:18:5-68:19
-33        android:name="com.miku.player.MikuPlayerApp"
-33-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:19:9-38
-34        android:allowBackup="true"
-34-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:20:9-35
-35        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-35-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
-36        android:debuggable="true"
-37        android:extractNativeLibs="false"
-38        android:hardwareAccelerated="true"
-38-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:26:9-43
-39        android:icon="@mipmap/ic_launcher"
-39-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:21:9-43
-40        android:label="@string/app_name"
-40-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:23:9-41
-41        android:roundIcon="@mipmap/ic_launcher_round"
-41-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:22:9-54
-42        android:supportsRtl="true"
-42-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:24:9-35
-43        android:testOnly="true"
-44        android:theme="@style/Theme.MikuPlayer" >
-44-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:25:9-48
-45        <activity
-45-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:28:9-34:20
-46            android:name="com.miku.player.ui.main.MainActivity"
-46-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:28:19-55
-47            android:exported="true"
-47-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:28:56-79
-48            android:windowSoftInputMode="adjustResize" >
-48-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:29:13-55
-49            <intent-filter>
-49-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:30:13-33:29
-50                <action android:name="android.intent.action.MAIN" />
-50-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:31:17-69
-50-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:31:25-66
-51
-52                <category android:name="android.intent.category.LAUNCHER" />
-52-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:32:17-77
-52-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:32:27-74
-53            </intent-filter>
-54        </activity>
-55        <activity
-55-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:36:9-37:66
-56            android:name="com.miku.player.ui.songs.SongsActivity"
-56-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:36:19-57
-57            android:exported="false"
-57-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:36:58-82
-58            android:parentActivityName="com.miku.player.ui.main.MainActivity" />
-58-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:37:13-63
-59        <activity
-59-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:39:9-40:66
-60            android:name="com.miku.player.ui.playlists.PlaylistsActivity"
-60-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:39:19-65
-61            android:exported="false"
-61-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:39:66-90
-62            android:parentActivityName="com.miku.player.ui.main.MainActivity" />
-62-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:40:13-63
-63        <activity
-63-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:42:9-43:76
-64            android:name="com.miku.player.ui.playlists.PlaylistDetailActivity"
-64-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:42:19-70
-65            android:exported="false"
-65-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:42:71-95
-66            android:parentActivityName="com.miku.player.ui.playlists.PlaylistsActivity" />
-66-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:43:13-73
-67        <activity
-67-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:46:9-47:66
-68            android:name="com.miku.player.ui.favorites.FavoritesActivity"
-68-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:46:19-65
-69            android:exported="false"
-69-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:46:66-90
-70            android:parentActivityName="com.miku.player.ui.main.MainActivity" />
-70-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:47:13-63
-71        <activity
-71-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:49:9-50:66
-72            android:name="com.miku.player.ui.backup.BackupActivity"
-72-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:49:19-59
-73            android:exported="false"
-73-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:49:60-84
-74            android:parentActivityName="com.miku.player.ui.main.MainActivity" />
-74-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:50:13-63
-75        <activity
-75-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:51:9-52:68
-76            android:name="com.miku.player.ui.player.PlayerActivity"
-76-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:51:19-59
-77            android:exported="false"
-77-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:51:60-84
-78            android:parentActivityName="com.miku.player.ui.songs.SongsActivity" />
-78-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:52:13-65
-79
-80        <service
-80-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:54:9-59:19
-81            android:name="com.miku.player.data.service.MusicService"
-81-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:54:18-59
-82            android:exported="true"
-82-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:54:60-83
-83            android:foregroundServiceType="mediaPlayback" >
-83-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:55:13-58
-84            <intent-filter>
-84-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:56:13-58:29
-85                <action android:name="androidx.media3.session.MediaSessionService" />
-85-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:57:17-86
-85-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:57:25-83
-86            </intent-filter>
-87        </service>
-88
-89        <provider
-90            android:name="androidx.core.content.FileProvider"
-90-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:61:19-68
-91            android:authorities="com.miku.player.fileprovider"
-91-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:62:13-64
-92            android:exported="false"
-92-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:63:13-37
-93            android:grantUriPermissions="true" >
-93-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:63:38-72
-94            <meta-data
-94-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:64:13-65:54
-95                android:name="android.support.FILE_PROVIDER_PATHS"
-95-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:64:24-74
-96                android:resource="@xml/file_paths" />
-96-->C:\Users\josem\Downloads\MikuPlayer\app\src\main\AndroidManifest.xml:65:17-51
-97        </provider>
-98        <provider
-98-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
-99            android:name="androidx.startup.InitializationProvider"
-99-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:25:13-67
-100            android:authorities="com.miku.player.androidx-startup"
-100-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:26:13-68
-101            android:exported="false" >
-101-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:27:13-37
-102            <meta-data
-102-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
-103                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-103-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:30:17-75
-104                android:value="androidx.startup" />
-104-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:31:17-49
-105            <meta-data
-105-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\josem\.gradle\caches\9.0.0\transforms\da58821c032fc77ee6917c45881fcd88\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
-106                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-106-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\josem\.gradle\caches\9.0.0\transforms\da58821c032fc77ee6917c45881fcd88\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
-107                android:value="androidx.startup" />
-107-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\josem\.gradle\caches\9.0.0\transforms\da58821c032fc77ee6917c45881fcd88\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+19-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:10:5-77
+19-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:10:22-74
+20    <!--
+21         MANAGE_EXTERNAL_STORAGE eliminado: no se necesita para un reproductor de música
+22         y requiere justificación especial ante Google Play.
+23    -->
+24    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+24-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:13:5-77
+24-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:13:22-74
+25    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+25-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:14:5-92
+25-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:14:22-89
+26    <uses-permission android:name="android.permission.WAKE_LOCK" />
+26-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:15:5-68
+26-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:15:22-65
+27    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+27-->[androidx.media3:media3-exoplayer:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\64afd6471887178d6f2d567be61485ef\transformed\jetified-media3-exoplayer-1.3.1\AndroidManifest.xml:22:5-79
+27-->[androidx.media3:media3-exoplayer:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\64afd6471887178d6f2d567be61485ef\transformed\jetified-media3-exoplayer-1.3.1\AndroidManifest.xml:22:22-76
+28
+29    <permission
+29-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+30        android:name="com.miku.player.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+30-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+31        android:protectionLevel="signature" />
+31-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+32
+33    <uses-permission android:name="com.miku.player.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+33-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+33-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+34
+35    <application
+35-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:17:5-69:19
+36        android:name="com.miku.player.MikuPlayerApp"
+36-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:18:9-38
+37        android:allowBackup="true"
+37-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:19:9-35
+38        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+38-->[androidx.core:core:1.13.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\996f4affe4be5aa2f0798cc7ba523985\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+39        android:debuggable="true"
+40        android:extractNativeLibs="false"
+41        android:hardwareAccelerated="true"
+41-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:25:9-43
+42        android:icon="@mipmap/ic_launcher"
+42-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:20:9-43
+43        android:label="@string/app_name"
+43-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:22:9-41
+44        android:roundIcon="@mipmap/ic_launcher_round"
+44-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:21:9-54
+45        android:supportsRtl="true"
+45-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:23:9-35
+46        android:theme="@style/Theme.MikuPlayer" >
+46-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:24:9-48
+47        <activity
+47-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:27:9-33:20
+48            android:name="com.miku.player.ui.main.MainActivity"
+48-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:27:19-55
+49            android:exported="true"
+49-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:27:56-79
+50            android:windowSoftInputMode="adjustResize" >
+50-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:28:13-55
+51            <intent-filter>
+51-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:29:13-32:29
+52                <action android:name="android.intent.action.MAIN" />
+52-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:30:17-69
+52-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:30:25-66
+53
+54                <category android:name="android.intent.category.LAUNCHER" />
+54-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:31:17-77
+54-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:31:27-74
+55            </intent-filter>
+56        </activity>
+57        <activity
+57-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:35:9-36:66
+58            android:name="com.miku.player.ui.songs.SongsActivity"
+58-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:35:19-57
+59            android:exported="false"
+59-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:35:58-82
+60            android:parentActivityName="com.miku.player.ui.main.MainActivity" />
+60-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:36:13-63
+61        <activity
+61-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:38:9-39:66
+62            android:name="com.miku.player.ui.playlists.PlaylistsActivity"
+62-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:38:19-65
+63            android:exported="false"
+63-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:38:66-90
+64            android:parentActivityName="com.miku.player.ui.main.MainActivity" />
+64-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:39:13-63
+65        <activity
+65-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:41:9-42:76
+66            android:name="com.miku.player.ui.playlists.PlaylistDetailActivity"
+66-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:41:19-70
+67            android:exported="false"
+67-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:41:71-95
+68            android:parentActivityName="com.miku.player.ui.playlists.PlaylistsActivity" />
+68-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:42:13-73
+69        <activity
+69-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:45:9-46:66
+70            android:name="com.miku.player.ui.favorites.FavoritesActivity"
+70-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:45:19-65
+71            android:exported="false"
+71-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:45:66-90
+72            android:parentActivityName="com.miku.player.ui.main.MainActivity" />
+72-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:46:13-63
+73        <activity
+73-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:48:9-49:74
+74            android:name="com.miku.player.ui.backup.BackupActivity"
+74-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:48:19-59
+75            android:exported="false"
+75-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:48:60-84
+76            android:parentActivityName="com.miku.player.ui.settings.SettingsActivity" />
+76-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:49:13-71
+77        <activity
+77-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:50:9-51:66
+78            android:name="com.miku.player.ui.settings.SettingsActivity"
+78-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:50:19-63
+79            android:exported="false"
+79-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:50:64-88
+80            android:parentActivityName="com.miku.player.ui.main.MainActivity" />
+80-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:51:13-63
+81        <activity
+81-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:52:9-53:68
+82            android:name="com.miku.player.ui.player.PlayerActivity"
+82-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:52:19-59
+83            android:exported="false"
+83-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:52:60-84
+84            android:parentActivityName="com.miku.player.ui.songs.SongsActivity" />
+84-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:53:13-65
+85
+86        <service
+86-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:55:9-60:19
+87            android:name="com.miku.player.data.service.MusicService"
+87-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:55:18-59
+88            android:exported="true"
+88-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:55:60-83
+89            android:foregroundServiceType="mediaPlayback" >
+89-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:56:13-58
+90            <intent-filter>
+90-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:57:13-59:29
+91                <action android:name="androidx.media3.session.MediaSessionService" />
+91-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:58:17-86
+91-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:58:25-83
+92            </intent-filter>
+93        </service>
+94
+95        <provider
+96            android:name="androidx.core.content.FileProvider"
+96-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:62:19-68
+97            android:authorities="com.miku.player.fileprovider"
+97-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:63:13-64
+98            android:exported="false"
+98-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:64:13-37
+99            android:grantUriPermissions="true" >
+99-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:64:38-72
+100            <meta-data
+100-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:65:13-66:54
+101                android:name="android.support.FILE_PROVIDER_PATHS"
+101-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:65:24-74
+102                android:resource="@xml/file_paths" />
+102-->C:\Users\josem\OneDrive\Documentos\MikuPlayer\app\src\main\AndroidManifest.xml:66:17-51
+103        </provider>
+104        <provider
+104-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+105            android:name="androidx.startup.InitializationProvider"
+105-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:25:13-67
+106            android:authorities="com.miku.player.androidx-startup"
+106-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:26:13-68
+107            android:exported="false" >
+107-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:27:13-37
 108            <meta-data
-108-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
-109                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-109-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+108-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+109                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+109-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:30:17-75
 110                android:value="androidx.startup" />
-110-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
-111        </provider>
-112
-113        <service
-113-->[androidx.room:room-runtime:2.6.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\81d3db4cfe25ed3d6570ba28bd759469\transformed\room-runtime-2.6.1\AndroidManifest.xml:24:9-28:63
-114            android:name="androidx.room.MultiInstanceInvalidationService"
-114-->[androidx.room:room-runtime:2.6.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\81d3db4cfe25ed3d6570ba28bd759469\transformed\room-runtime-2.6.1\AndroidManifest.xml:25:13-74
-115            android:directBootAware="true"
-115-->[androidx.room:room-runtime:2.6.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\81d3db4cfe25ed3d6570ba28bd759469\transformed\room-runtime-2.6.1\AndroidManifest.xml:26:13-43
-116            android:exported="false" />
-116-->[androidx.room:room-runtime:2.6.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\81d3db4cfe25ed3d6570ba28bd759469\transformed\room-runtime-2.6.1\AndroidManifest.xml:27:13-37
-117
-118        <receiver
-118-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
-119            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-119-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
-120            android:directBootAware="false"
-120-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
-121            android:enabled="true"
-121-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
-122            android:exported="true"
-122-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
-123            android:permission="android.permission.DUMP" >
-123-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
-124            <intent-filter>
-124-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
-125                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-125-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
-125-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
-126            </intent-filter>
-127            <intent-filter>
-127-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
-128                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-128-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
-128-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
-129            </intent-filter>
+110-->[androidx.emoji2:emoji2:1.3.0] C:\Users\josem\.gradle\caches\9.0.0\transforms\fa14c686c94ca226857d71f054ccd0f8\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:31:17-49
+111            <meta-data
+111-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\josem\.gradle\caches\9.0.0\transforms\da58821c032fc77ee6917c45881fcd88\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+112                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+112-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\josem\.gradle\caches\9.0.0\transforms\da58821c032fc77ee6917c45881fcd88\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+113                android:value="androidx.startup" />
+113-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\josem\.gradle\caches\9.0.0\transforms\da58821c032fc77ee6917c45881fcd88\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+114            <meta-data
+114-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+115                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+115-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+116                android:value="androidx.startup" />
+116-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+117        </provider>
+118
+119        <service
+119-->[androidx.room:room-runtime:2.6.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\81d3db4cfe25ed3d6570ba28bd759469\transformed\room-runtime-2.6.1\AndroidManifest.xml:24:9-28:63
+120            android:name="androidx.room.MultiInstanceInvalidationService"
+120-->[androidx.room:room-runtime:2.6.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\81d3db4cfe25ed3d6570ba28bd759469\transformed\room-runtime-2.6.1\AndroidManifest.xml:25:13-74
+121            android:directBootAware="true"
+121-->[androidx.room:room-runtime:2.6.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\81d3db4cfe25ed3d6570ba28bd759469\transformed\room-runtime-2.6.1\AndroidManifest.xml:26:13-43
+122            android:exported="false" />
+122-->[androidx.room:room-runtime:2.6.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\81d3db4cfe25ed3d6570ba28bd759469\transformed\room-runtime-2.6.1\AndroidManifest.xml:27:13-37
+123
+124        <receiver
+124-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+125            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+125-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+126            android:directBootAware="false"
+126-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+127            android:enabled="true"
+127-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+128            android:exported="true"
+128-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+129            android:permission="android.permission.DUMP" >
+129-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
 130            <intent-filter>
-130-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
-131                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-131-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
-131-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+130-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+131                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+131-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+131-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
 132            </intent-filter>
 133            <intent-filter>
-133-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
-134                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-134-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
-134-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+133-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+134                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+134-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+134-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
 135            </intent-filter>
-136        </receiver>
-137    </application>
-138
-139</manifest>
+136            <intent-filter>
+136-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+137                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+137-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+137-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+138            </intent-filter>
+139            <intent-filter>
+139-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+140                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+140-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+140-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\josem\.gradle\caches\9.0.0\transforms\80a40a44eb89631ebc29cab15ad6a089\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+141            </intent-filter>
+142        </receiver>
+143    </application>
+144
+145</manifest>

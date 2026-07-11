@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -18,6 +19,7 @@ import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.miku.player.R;
 import java.lang.NullPointerException;
 import java.lang.Override;
@@ -58,10 +60,13 @@ public final class ActivitySongsBinding implements ViewBinding {
   public final MaterialCardView miniPlayer;
 
   @NonNull
-  public final View miniPlayerProgress;
+  public final ProgressBar miniPlayerProgress;
 
   @NonNull
   public final RecyclerView rvSongs;
+
+  @NonNull
+  public final TextInputLayout tilSearch;
 
   @NonNull
   public final MaterialToolbar toolbar;
@@ -77,9 +82,10 @@ public final class ActivitySongsBinding implements ViewBinding {
       @NonNull ImageButton btnMiniPrevious, @NonNull ChipGroup chipGroupFilter,
       @NonNull Chip chipSortAZ, @NonNull Chip chipSortArtist, @NonNull Chip chipSortRecent,
       @NonNull TextInputEditText etSearch, @NonNull ShapeableImageView ivMiniCover,
-      @NonNull MaterialCardView miniPlayer, @NonNull View miniPlayerProgress,
-      @NonNull RecyclerView rvSongs, @NonNull MaterialToolbar toolbar,
-      @NonNull TextView tvMiniArtist, @NonNull TextView tvMiniTitle) {
+      @NonNull MaterialCardView miniPlayer, @NonNull ProgressBar miniPlayerProgress,
+      @NonNull RecyclerView rvSongs, @NonNull TextInputLayout tilSearch,
+      @NonNull MaterialToolbar toolbar, @NonNull TextView tvMiniArtist,
+      @NonNull TextView tvMiniTitle) {
     this.rootView = rootView;
     this.btnMiniNext = btnMiniNext;
     this.btnMiniPlayPause = btnMiniPlayPause;
@@ -93,6 +99,7 @@ public final class ActivitySongsBinding implements ViewBinding {
     this.miniPlayer = miniPlayer;
     this.miniPlayerProgress = miniPlayerProgress;
     this.rvSongs = rvSongs;
+    this.tilSearch = tilSearch;
     this.toolbar = toolbar;
     this.tvMiniArtist = tvMiniArtist;
     this.tvMiniTitle = tvMiniTitle;
@@ -186,7 +193,7 @@ public final class ActivitySongsBinding implements ViewBinding {
       }
 
       id = R.id.miniPlayerProgress;
-      View miniPlayerProgress = ViewBindings.findChildViewById(rootView, id);
+      ProgressBar miniPlayerProgress = ViewBindings.findChildViewById(rootView, id);
       if (miniPlayerProgress == null) {
         break missingId;
       }
@@ -194,6 +201,12 @@ public final class ActivitySongsBinding implements ViewBinding {
       id = R.id.rvSongs;
       RecyclerView rvSongs = ViewBindings.findChildViewById(rootView, id);
       if (rvSongs == null) {
+        break missingId;
+      }
+
+      id = R.id.tilSearch;
+      TextInputLayout tilSearch = ViewBindings.findChildViewById(rootView, id);
+      if (tilSearch == null) {
         break missingId;
       }
 
@@ -217,7 +230,8 @@ public final class ActivitySongsBinding implements ViewBinding {
 
       return new ActivitySongsBinding((CoordinatorLayout) rootView, btnMiniNext, btnMiniPlayPause,
           btnMiniPrevious, chipGroupFilter, chipSortAZ, chipSortArtist, chipSortRecent, etSearch,
-          ivMiniCover, miniPlayer, miniPlayerProgress, rvSongs, toolbar, tvMiniArtist, tvMiniTitle);
+          ivMiniCover, miniPlayer, miniPlayerProgress, rvSongs, tilSearch, toolbar, tvMiniArtist,
+          tvMiniTitle);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

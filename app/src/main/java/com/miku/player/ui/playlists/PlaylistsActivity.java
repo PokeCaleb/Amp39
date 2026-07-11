@@ -1,15 +1,19 @@
 package com.miku.player.ui.playlists;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.miku.player.R;
+import com.miku.player.data.model.Playlist;
 import com.miku.player.data.model.PlaylistWithSongs;
 import com.miku.player.databinding.ActivityPlaylistsBinding;
 import com.miku.player.ui.player.PlayerActivity;
@@ -22,6 +26,19 @@ public class PlaylistsActivity extends AppCompatActivity
     private ActivityPlaylistsBinding binding;
     private PlaylistsAdapter adapter;
     private PlaylistsViewModel viewModel;
+    private Playlist pendingCoverPlaylist;
+
+    private final ActivityResultLauncher<String> coverPickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null && pendingCoverPlaylist != null) {
+                    try {
+                        getContentResolver().takePersistableUriPermission(uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    } catch (Exception ignored) {}
+                    viewModel.updatePlaylistCover(pendingCoverPlaylist, uri.toString());
+                    pendingCoverPlaylist = null;
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +94,25 @@ public class PlaylistsActivity extends AppCompatActivity
         binding.btnMiniPlayPause.setOnClickListener(v -> pm.togglePlayPause());
         binding.btnMiniNext.setOnClickListener(v -> pm.playNext());
         binding.btnMiniPrevious.setOnClickListener(v -> pm.playPrevious());
+        startMiniProgressUpdater();
+    }
+
+    private final android.os.Handler miniProgressHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable miniProgressRunnable = new Runnable() {
+        @Override public void run() {
+            if (binding != null && binding.miniPlayer.getVisibility() == View.VISIBLE) {
+                long dur = PlayerManager.getInstance().getDuration();
+                long pos = PlayerManager.getInstance().getPositionMs();
+                if (dur > 0) binding.miniPlayerProgress.setProgress((int) ((pos * 1000L) / dur));
+            }
+            miniProgressHandler.postDelayed(this, 500);
+        }
+    };
+
+    private void startMiniProgressUpdater() {
+        miniProgressHandler.removeCallbacks(miniProgressRunnable);
+        miniProgressHandler.post(miniProgressRunnable);
     }
 
     private void showCreatePlaylistDialog() {
@@ -110,12 +146,17 @@ public class PlaylistsActivity extends AppCompatActivity
     public void onMoreClick(PlaylistWithSongs playlistWithSongs) {
         new MaterialAlertDialogBuilder(this)
                 .setTitle(playlistWithSongs.playlist.getName())
-                .setItems(new String[]{getString(R.string.delete_playlist)}, (dialog, which) -> {
+                .setItems(new String[]{"Cambiar portada", getString(R.string.delete_playlist)},
+                        (dialog, which) -> {
                     if (which == 0) {
+                        pendingCoverPlaylist = playlistWithSongs.playlist;
+                        coverPickerLauncher.launch("image/*");
+                    } else {
                         new MaterialAlertDialogBuilder(this)
                                 .setTitle("¿Eliminar lista?")
                                 .setMessage("Se eliminará \"" + playlistWithSongs.playlist.getName() + "\"")
-                                .setPositiveButton("Eliminar", (d, w) -> viewModel.deletePlaylist(playlistWithSongs.playlist))
+                                .setPositiveButton("Eliminar",
+                                        (d, w) -> viewModel.deletePlaylist(playlistWithSongs.playlist))
                                 .setNegativeButton(getString(R.string.cancel), null)
                                 .show();
                     }
@@ -126,5 +167,9 @@ public class PlaylistsActivity extends AppCompatActivity
     public boolean onSupportNavigateUp() { finish(); return true; }
 
     @Override
-    protected void onDestroy() { super.onDestroy(); binding = null; }
+    protected void onDestroy() {
+        miniProgressHandler.removeCallbacks(miniProgressRunnable);
+        super.onDestroy();
+        binding = null;
+    }
 }

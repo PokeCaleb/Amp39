@@ -3270,6 +3270,7 @@ drawable ic_call_answer_video
 drawable ic_call_answer_video_low
 drawable ic_call_decline
 drawable ic_call_decline_low
+drawable ic_check
 drawable ic_chevron_right
 drawable ic_clear_black_24
 drawable ic_clock_black_24dp
@@ -3303,6 +3304,7 @@ drawable ic_repeat
 drawable ic_restore
 drawable ic_search
 drawable ic_search_black_24
+drawable ic_settings
 drawable ic_shuffle
 drawable ic_skip_next
 drawable ic_skip_previous
@@ -3522,9 +3524,9 @@ id cardBackup
 id cardExport
 id cardFavorites
 id cardImport
-id cardImportListsOnly
 id cardPlaylists
 id cardSelectFolder
+id cardSettings
 id carryVelocity
 id center
 id centerCrop
@@ -3662,6 +3664,7 @@ id exo_vr
 id expand_activities_button
 id expanded_menu
 id fabAddSongs
+id fabConfirmReorder
 id fabCreatePlaylist
 id fade
 id fill
@@ -3718,6 +3721,7 @@ id is_pooling_container_tag
 id italic
 id item_touch_helper_previous_elevation
 id ivAlbumArt
+id ivAlbumArtPreview
 id ivDragHandle
 id ivMiniCover
 id ivPlaylistCover
@@ -3972,6 +3976,7 @@ id textinput_placeholder
 id textinput_prefix_text
 id textinput_suffix_text
 id texture_view
+id tilSearch
 id time
 id title
 id titleDividerNoCustom
@@ -4155,6 +4160,7 @@ layout activity_main
 layout activity_player
 layout activity_playlist_detail
 layout activity_playlists
+layout activity_settings
 layout activity_songs
 layout custom_dialog
 layout design_bottom_navigation_item

@@ -141,12 +141,16 @@
         app:cardBackgroundColor="@color/md_theme_surfaceVariant"
         app:cardCornerRadius="16dp"
         app:cardElevation="4dp">
-        <View
+        <ProgressBar
             android:id="@+id/miniPlayerProgress"
-            android:layout_width="0dp"
-            android:layout_height="2dp"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
             android:layout_gravity="top"
-            android:background="@color/md_theme_primary" />
+            android:progressTint="@color/md_theme_primary"
+            android:progressBackgroundTint="@android:color/transparent"
+            android:max="1000"
+            android:progress="0" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -226,5 +230,21 @@
         android:contentDescription="Agregar canciones"
         app:backgroundTint="@color/md_theme_primaryContainer"
         app:tint="@color/md_theme_onPrimaryContainer" />
+
+    <!-- FAB: Confirmar reorden (palomita) — visible solo en modo reorder -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabConfirmReorder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="100dp"
+        android:text="Listo"
+        android:visibility="gone"
+        app:icon="@drawable/ic_check"
+        app:backgroundTint="@color/md_theme_primary"
+        android:textColor="@color/md_theme_onPrimary"
+        app:iconTint="@color/md_theme_onPrimary"
+        android:contentDescription="Confirmar orden" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

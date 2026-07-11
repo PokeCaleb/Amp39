@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -44,7 +45,7 @@ public final class ActivityPlaylistsBinding implements ViewBinding {
   public final MaterialCardView miniPlayer;
 
   @NonNull
-  public final View miniPlayerProgress;
+  public final ProgressBar miniPlayerProgress;
 
   @NonNull
   public final RecyclerView rvPlaylists;
@@ -62,7 +63,7 @@ public final class ActivityPlaylistsBinding implements ViewBinding {
       @NonNull ImageButton btnMiniNext, @NonNull ImageButton btnMiniPlayPause,
       @NonNull ImageButton btnMiniPrevious, @NonNull FloatingActionButton fabCreatePlaylist,
       @NonNull ShapeableImageView ivMiniCover, @NonNull MaterialCardView miniPlayer,
-      @NonNull View miniPlayerProgress, @NonNull RecyclerView rvPlaylists,
+      @NonNull ProgressBar miniPlayerProgress, @NonNull RecyclerView rvPlaylists,
       @NonNull MaterialToolbar toolbar, @NonNull TextView tvMiniArtist,
       @NonNull TextView tvMiniTitle) {
     this.rootView = rootView;
@@ -143,7 +144,7 @@ public final class ActivityPlaylistsBinding implements ViewBinding {
       }
 
       id = R.id.miniPlayerProgress;
-      View miniPlayerProgress = ViewBindings.findChildViewById(rootView, id);
+      ProgressBar miniPlayerProgress = ViewBindings.findChildViewById(rootView, id);
       if (miniPlayerProgress == null) {
         break missingId;
       }

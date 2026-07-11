@@ -259,9 +259,9 @@
                 </RelativeLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Backup card -->
+            <!-- Settings card -->
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardBackup"
+                android:id="@+id/cardSettings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="80dp"
@@ -286,7 +286,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_gravity="center"
-                            android:src="@drawable/ic_backup"
+                            android:src="@drawable/ic_settings"
                             android:tint="@color/md_theme_onPrimary" />
                     </FrameLayout>
                     <LinearLayout
@@ -298,13 +298,13 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Respaldo de datos"
+                            android:text="Ajustes"
                             android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
                             android:textColor="@color/md_theme_onSurface" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Exportar o importar listas y carátulas"
+                            android:text="Tema, respaldo de datos y más"
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                             android:textColor="@color/md_theme_onSurfaceVariant" />
                     </LinearLayout>
@@ -335,12 +335,16 @@
         app:cardCornerRadius="16dp"
         app:cardElevation="4dp">
         <!-- Progress bar at top -->
-        <View
+        <ProgressBar
             android:id="@+id/miniPlayerProgress"
-            android:layout_width="0dp"
-            android:layout_height="2dp"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
             android:layout_gravity="top"
-            android:background="@color/md_theme_primary" />
+            android:progressTint="@color/md_theme_primary"
+            android:progressBackgroundTint="@android:color/transparent"
+            android:max="1000"
+            android:progress="0" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"

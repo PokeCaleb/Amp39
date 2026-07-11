@@ -38,6 +38,8 @@ public final class SongDao_Impl implements SongDao {
 
   private final EntityDeletionOrUpdateAdapter<Song> __updateAdapterOfSong;
 
+  private final SharedSQLiteStatement __preparedStmtOfSetFavoriteWithOrder;
+
   private final SharedSQLiteStatement __preparedStmtOfSetFavorite;
 
   private final SharedSQLiteStatement __preparedStmtOfSetCustomTitle;
@@ -54,7 +56,7 @@ public final class SongDao_Impl implements SongDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR REPLACE INTO `songs` (`id`,`title`,`customTitle`,`artist`,`album`,`duration`,`path`,`customCoverPath`,`dateAdded`,`isFavorite`) VALUES (?,?,?,?,?,?,?,?,?,?)";
+        return "INSERT OR REPLACE INTO `songs` (`id`,`title`,`customTitle`,`artist`,`album`,`duration`,`path`,`customCoverPath`,`dateAdded`,`isFavorite`,`favoriteOrder`) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -94,6 +96,7 @@ public final class SongDao_Impl implements SongDao {
         statement.bindLong(9, entity.getDateAdded());
         final int _tmp = entity.isFavorite() ? 1 : 0;
         statement.bindLong(10, _tmp);
+        statement.bindLong(11, entity.getFavoriteOrder());
       }
     };
     this.__deletionAdapterOfSong = new EntityDeletionOrUpdateAdapter<Song>(__db) {
@@ -112,7 +115,7 @@ public final class SongDao_Impl implements SongDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "UPDATE OR ABORT `songs` SET `id` = ?,`title` = ?,`customTitle` = ?,`artist` = ?,`album` = ?,`duration` = ?,`path` = ?,`customCoverPath` = ?,`dateAdded` = ?,`isFavorite` = ? WHERE `id` = ?";
+        return "UPDATE OR ABORT `songs` SET `id` = ?,`title` = ?,`customTitle` = ?,`artist` = ?,`album` = ?,`duration` = ?,`path` = ?,`customCoverPath` = ?,`dateAdded` = ?,`isFavorite` = ?,`favoriteOrder` = ? WHERE `id` = ?";
       }
 
       @Override
@@ -152,7 +155,16 @@ public final class SongDao_Impl implements SongDao {
         statement.bindLong(9, entity.getDateAdded());
         final int _tmp = entity.isFavorite() ? 1 : 0;
         statement.bindLong(10, _tmp);
-        statement.bindLong(11, entity.getId());
+        statement.bindLong(11, entity.getFavoriteOrder());
+        statement.bindLong(12, entity.getId());
+      }
+    };
+    this.__preparedStmtOfSetFavoriteWithOrder = new SharedSQLiteStatement(__db) {
+      @Override
+      @NonNull
+      public String createQuery() {
+        final String _query = "UPDATE songs SET isFavorite = ?, favoriteOrder = ? WHERE id = ?";
+        return _query;
       }
     };
     this.__preparedStmtOfSetFavorite = new SharedSQLiteStatement(__db) {
@@ -242,6 +254,30 @@ public final class SongDao_Impl implements SongDao {
       __db.setTransactionSuccessful();
     } finally {
       __db.endTransaction();
+    }
+  }
+
+  @Override
+  public void setFavoriteWithOrder(final long id, final boolean fav, final long order) {
+    __db.assertNotSuspendingTransaction();
+    final SupportSQLiteStatement _stmt = __preparedStmtOfSetFavoriteWithOrder.acquire();
+    int _argIndex = 1;
+    final int _tmp = fav ? 1 : 0;
+    _stmt.bindLong(_argIndex, _tmp);
+    _argIndex = 2;
+    _stmt.bindLong(_argIndex, order);
+    _argIndex = 3;
+    _stmt.bindLong(_argIndex, id);
+    try {
+      __db.beginTransaction();
+      try {
+        _stmt.executeUpdateDelete();
+        __db.setTransactionSuccessful();
+      } finally {
+        __db.endTransaction();
+      }
+    } finally {
+      __preparedStmtOfSetFavoriteWithOrder.release(_stmt);
     }
   }
 
@@ -371,6 +407,7 @@ public final class SongDao_Impl implements SongDao {
           final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
           final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
           final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
+          final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
           final List<Song> _result = new ArrayList<Song>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final Song _item;
@@ -431,6 +468,9 @@ public final class SongDao_Impl implements SongDao {
             _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
             _tmpIsFavorite = _tmp != 0;
             _item.setFavorite(_tmpIsFavorite);
+            final long _tmpFavoriteOrder;
+            _tmpFavoriteOrder = _cursor.getLong(_cursorIndexOfFavoriteOrder);
+            _item.setFavoriteOrder(_tmpFavoriteOrder);
             _result.add(_item);
           }
           return _result;
@@ -448,8 +488,8 @@ public final class SongDao_Impl implements SongDao {
 
   @Override
   public LiveData<List<Song>> search(final String query) {
-    final String _sql = "SELECT * FROM songs WHERE title LIKE ? OR artist LIKE ? ORDER BY title ASC";
-    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 2);
+    final String _sql = "SELECT * FROM songs WHERE title LIKE ? OR artist LIKE ? OR (customTitle IS NOT NULL AND customTitle LIKE ?) ORDER BY title ASC";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 3);
     int _argIndex = 1;
     if (query == null) {
       _statement.bindNull(_argIndex);
@@ -457,6 +497,12 @@ public final class SongDao_Impl implements SongDao {
       _statement.bindString(_argIndex, query);
     }
     _argIndex = 2;
+    if (query == null) {
+      _statement.bindNull(_argIndex);
+    } else {
+      _statement.bindString(_argIndex, query);
+    }
+    _argIndex = 3;
     if (query == null) {
       _statement.bindNull(_argIndex);
     } else {
@@ -478,6 +524,7 @@ public final class SongDao_Impl implements SongDao {
           final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
           final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
           final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
+          final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
           final List<Song> _result = new ArrayList<Song>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final Song _item;
@@ -538,6 +585,9 @@ public final class SongDao_Impl implements SongDao {
             _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
             _tmpIsFavorite = _tmp != 0;
             _item.setFavorite(_tmpIsFavorite);
+            final long _tmpFavoriteOrder;
+            _tmpFavoriteOrder = _cursor.getLong(_cursorIndexOfFavoriteOrder);
+            _item.setFavoriteOrder(_tmpFavoriteOrder);
             _result.add(_item);
           }
           return _result;
@@ -572,6 +622,7 @@ public final class SongDao_Impl implements SongDao {
       final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
       final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
       final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
+      final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
       final Song _result;
       if (_cursor.moveToFirst()) {
         _result = new Song();
@@ -631,6 +682,9 @@ public final class SongDao_Impl implements SongDao {
         _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
         _tmpIsFavorite = _tmp != 0;
         _result.setFavorite(_tmpIsFavorite);
+        final long _tmpFavoriteOrder;
+        _tmpFavoriteOrder = _cursor.getLong(_cursorIndexOfFavoriteOrder);
+        _result.setFavoriteOrder(_tmpFavoriteOrder);
       } else {
         _result = null;
       }
@@ -642,8 +696,109 @@ public final class SongDao_Impl implements SongDao {
   }
 
   @Override
+  public LiveData<Song> getSongByIdLive(final long id) {
+    final String _sql = "SELECT * FROM songs WHERE id = ?";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
+    int _argIndex = 1;
+    _statement.bindLong(_argIndex, id);
+    return __db.getInvalidationTracker().createLiveData(new String[] {"songs"}, false, new Callable<Song>() {
+      @Override
+      @Nullable
+      public Song call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfTitle = CursorUtil.getColumnIndexOrThrow(_cursor, "title");
+          final int _cursorIndexOfCustomTitle = CursorUtil.getColumnIndexOrThrow(_cursor, "customTitle");
+          final int _cursorIndexOfArtist = CursorUtil.getColumnIndexOrThrow(_cursor, "artist");
+          final int _cursorIndexOfAlbum = CursorUtil.getColumnIndexOrThrow(_cursor, "album");
+          final int _cursorIndexOfDuration = CursorUtil.getColumnIndexOrThrow(_cursor, "duration");
+          final int _cursorIndexOfPath = CursorUtil.getColumnIndexOrThrow(_cursor, "path");
+          final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
+          final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
+          final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
+          final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
+          final Song _result;
+          if (_cursor.moveToFirst()) {
+            _result = new Song();
+            final long _tmpId;
+            _tmpId = _cursor.getLong(_cursorIndexOfId);
+            _result.setId(_tmpId);
+            final String _tmpTitle;
+            if (_cursor.isNull(_cursorIndexOfTitle)) {
+              _tmpTitle = null;
+            } else {
+              _tmpTitle = _cursor.getString(_cursorIndexOfTitle);
+            }
+            _result.setTitle(_tmpTitle);
+            final String _tmpCustomTitle;
+            if (_cursor.isNull(_cursorIndexOfCustomTitle)) {
+              _tmpCustomTitle = null;
+            } else {
+              _tmpCustomTitle = _cursor.getString(_cursorIndexOfCustomTitle);
+            }
+            _result.setCustomTitle(_tmpCustomTitle);
+            final String _tmpArtist;
+            if (_cursor.isNull(_cursorIndexOfArtist)) {
+              _tmpArtist = null;
+            } else {
+              _tmpArtist = _cursor.getString(_cursorIndexOfArtist);
+            }
+            _result.setArtist(_tmpArtist);
+            final String _tmpAlbum;
+            if (_cursor.isNull(_cursorIndexOfAlbum)) {
+              _tmpAlbum = null;
+            } else {
+              _tmpAlbum = _cursor.getString(_cursorIndexOfAlbum);
+            }
+            _result.setAlbum(_tmpAlbum);
+            final long _tmpDuration;
+            _tmpDuration = _cursor.getLong(_cursorIndexOfDuration);
+            _result.setDuration(_tmpDuration);
+            final String _tmpPath;
+            if (_cursor.isNull(_cursorIndexOfPath)) {
+              _tmpPath = null;
+            } else {
+              _tmpPath = _cursor.getString(_cursorIndexOfPath);
+            }
+            _result.setPath(_tmpPath);
+            final String _tmpCustomCoverPath;
+            if (_cursor.isNull(_cursorIndexOfCustomCoverPath)) {
+              _tmpCustomCoverPath = null;
+            } else {
+              _tmpCustomCoverPath = _cursor.getString(_cursorIndexOfCustomCoverPath);
+            }
+            _result.setCustomCoverPath(_tmpCustomCoverPath);
+            final long _tmpDateAdded;
+            _tmpDateAdded = _cursor.getLong(_cursorIndexOfDateAdded);
+            _result.setDateAdded(_tmpDateAdded);
+            final boolean _tmpIsFavorite;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
+            _tmpIsFavorite = _tmp != 0;
+            _result.setFavorite(_tmpIsFavorite);
+            final long _tmpFavoriteOrder;
+            _tmpFavoriteOrder = _cursor.getLong(_cursorIndexOfFavoriteOrder);
+            _result.setFavoriteOrder(_tmpFavoriteOrder);
+          } else {
+            _result = null;
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+        }
+      }
+
+      @Override
+      protected void finalize() {
+        _statement.release();
+      }
+    });
+  }
+
+  @Override
   public LiveData<List<Song>> getFavoriteSongs() {
-    final String _sql = "SELECT * FROM songs WHERE isFavorite = 1 ORDER BY title ASC";
+    final String _sql = "SELECT * FROM songs WHERE isFavorite = 1 ORDER BY favoriteOrder ASC";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
     return __db.getInvalidationTracker().createLiveData(new String[] {"songs"}, false, new Callable<List<Song>>() {
       @Override
@@ -661,6 +816,7 @@ public final class SongDao_Impl implements SongDao {
           final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
           final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
           final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
+          final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
           final List<Song> _result = new ArrayList<Song>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final Song _item;
@@ -721,6 +877,9 @@ public final class SongDao_Impl implements SongDao {
             _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
             _tmpIsFavorite = _tmp != 0;
             _item.setFavorite(_tmpIsFavorite);
+            final long _tmpFavoriteOrder;
+            _tmpFavoriteOrder = _cursor.getLong(_cursorIndexOfFavoriteOrder);
+            _item.setFavoriteOrder(_tmpFavoriteOrder);
             _result.add(_item);
           }
           return _result;

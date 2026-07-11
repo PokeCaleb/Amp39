@@ -46,6 +46,9 @@ public final class ActivityPlayerBinding implements ViewBinding {
   public final ShapeableImageView ivAlbumArt;
 
   @NonNull
+  public final ShapeableImageView ivAlbumArtPreview;
+
+  @NonNull
   public final LinearLayout llControls;
 
   @NonNull
@@ -73,9 +76,9 @@ public final class ActivityPlayerBinding implements ViewBinding {
       @NonNull ImageButton btnFavoritePlayer, @NonNull ImageButton btnNext,
       @NonNull ImageButton btnPlayPause, @NonNull ImageButton btnPrevious,
       @NonNull ImageButton btnRepeat, @NonNull ImageButton btnShuffle,
-      @NonNull ShapeableImageView ivAlbumArt, @NonNull LinearLayout llControls,
-      @NonNull Slider seekBar, @NonNull MaterialToolbar toolbar, @NonNull TextView tvArtist,
-      @NonNull TextView tvCurrentTime, @NonNull TextView tvDuration,
+      @NonNull ShapeableImageView ivAlbumArt, @NonNull ShapeableImageView ivAlbumArtPreview,
+      @NonNull LinearLayout llControls, @NonNull Slider seekBar, @NonNull MaterialToolbar toolbar,
+      @NonNull TextView tvArtist, @NonNull TextView tvCurrentTime, @NonNull TextView tvDuration,
       @NonNull TextView tvNowPlayingLabel, @NonNull TextView tvSongTitle) {
     this.rootView = rootView;
     this.btnFavoritePlayer = btnFavoritePlayer;
@@ -85,6 +88,7 @@ public final class ActivityPlayerBinding implements ViewBinding {
     this.btnRepeat = btnRepeat;
     this.btnShuffle = btnShuffle;
     this.ivAlbumArt = ivAlbumArt;
+    this.ivAlbumArtPreview = ivAlbumArtPreview;
     this.llControls = llControls;
     this.seekBar = seekBar;
     this.toolbar = toolbar;
@@ -164,6 +168,12 @@ public final class ActivityPlayerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.ivAlbumArtPreview;
+      ShapeableImageView ivAlbumArtPreview = ViewBindings.findChildViewById(rootView, id);
+      if (ivAlbumArtPreview == null) {
+        break missingId;
+      }
+
       id = R.id.llControls;
       LinearLayout llControls = ViewBindings.findChildViewById(rootView, id);
       if (llControls == null) {
@@ -213,8 +223,9 @@ public final class ActivityPlayerBinding implements ViewBinding {
       }
 
       return new ActivityPlayerBinding((ConstraintLayout) rootView, btnFavoritePlayer, btnNext,
-          btnPlayPause, btnPrevious, btnRepeat, btnShuffle, ivAlbumArt, llControls, seekBar,
-          toolbar, tvArtist, tvCurrentTime, tvDuration, tvNowPlayingLabel, tvSongTitle);
+          btnPlayPause, btnPrevious, btnRepeat, btnShuffle, ivAlbumArt, ivAlbumArtPreview,
+          llControls, seekBar, toolbar, tvArtist, tvCurrentTime, tvDuration, tvNowPlayingLabel,
+          tvSongTitle);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

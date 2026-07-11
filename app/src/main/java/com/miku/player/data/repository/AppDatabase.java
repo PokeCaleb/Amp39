@@ -8,8 +8,8 @@ import com.miku.player.data.model.*;
 
 @Database(
     entities = {Song.class, Playlist.class, PlaylistSong.class},
-    version = 7,
-    exportSchema = false
+    version = 9,
+    exportSchema = true
 )
 public abstract class AppDatabase extends RoomDatabase {
 
@@ -56,14 +56,28 @@ public abstract class AppDatabase extends RoomDatabase {
                                     db.execSQL("ALTER TABLE songs ADD COLUMN isFavorite INTEGER NOT NULL DEFAULT 0");
                                 }
                             },
-                            // v6→v7: add customTitle column
                             new androidx.room.migration.Migration(6, 7) {
                                 @Override public void migrate(androidx.sqlite.db.SupportSQLiteDatabase db) {
                                     db.execSQL("ALTER TABLE songs ADD COLUMN customTitle TEXT");
                                 }
+                            },
+                            // v7→v8: sin cambios de esquema; versión subida al eliminar
+                            // fallbackToDestructiveMigration() para proteger los datos del usuario.
+                            new androidx.room.migration.Migration(7, 8) {
+                                @Override public void migrate(androidx.sqlite.db.SupportSQLiteDatabase db) {}
+                            },
+                            // v8→v9: columna favoriteOrder para preservar el orden de selección
+                            new androidx.room.migration.Migration(8, 9) {
+                                @Override public void migrate(androidx.sqlite.db.SupportSQLiteDatabase db) {
+                                    db.execSQL("ALTER TABLE songs ADD COLUMN favoriteOrder INTEGER NOT NULL DEFAULT 0");
+                                    // Migrar favoritos existentes: asignar orden basado en rowid
+                                    // para que no queden todos en 0 (lo que haría el orden arbitrario)
+                                    db.execSQL("UPDATE songs SET favoriteOrder = id WHERE isFavorite = 1");
+                                }
                             }
                         )
-                        .fallbackToDestructiveMigration()
+                        // fallbackToDestructiveMigration() eliminado: borraba todos los datos
+                        // silenciosamente ante cualquier migración no registrada.
                         .build();
                 }
             }

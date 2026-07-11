@@ -32,4 +32,24 @@ public class FavoritesViewModel extends AndroidViewModel {
     public void toggleFavorite(Song song) { repository.toggleFavorite(song); }
 
     public void setFavorite(Song song, boolean state) { repository.setFavorite(song, state); }
+
+    public void updateSongCover(Song song, String coverPath,
+                                MusicRepository.CoverUpdateCallback callback) {
+        repository.updateSongCover(song, coverPath, callback);
+    }
+
+    public void updateCustomTitle(Song song, String newTitle, android.app.Activity activity) {
+        repository.updateCustomTitle(song, newTitle, activity,
+            new com.miku.player.utils.TagWriter.Result() {
+                public void onSuccess() {}
+                public void onError(String msg) {
+                    android.util.Log.w("FavoritesVM", "Title tag write failed: " + msg);
+                }
+            });
+    }
+
+    public void deleteSong(Song song, boolean deleteFile,
+                           MusicRepository.Callback<Boolean> cb) {
+        repository.deleteSong(song, deleteFile, cb);
+    }
 }

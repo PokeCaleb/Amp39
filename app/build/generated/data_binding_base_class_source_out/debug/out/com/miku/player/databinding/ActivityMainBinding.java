@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -37,9 +38,6 @@ public final class ActivityMainBinding implements ViewBinding {
   public final MaterialCardView cardAllSongs;
 
   @NonNull
-  public final MaterialCardView cardBackup;
-
-  @NonNull
   public final MaterialCardView cardFavorites;
 
   @NonNull
@@ -47,6 +45,9 @@ public final class ActivityMainBinding implements ViewBinding {
 
   @NonNull
   public final MaterialCardView cardSelectFolder;
+
+  @NonNull
+  public final MaterialCardView cardSettings;
 
   @NonNull
   public final FrameLayout iconFavorites;
@@ -64,7 +65,7 @@ public final class ActivityMainBinding implements ViewBinding {
   public final MaterialCardView miniPlayer;
 
   @NonNull
-  public final View miniPlayerProgress;
+  public final ProgressBar miniPlayerProgress;
 
   @NonNull
   public final MaterialToolbar toolbar;
@@ -80,12 +81,12 @@ public final class ActivityMainBinding implements ViewBinding {
 
   private ActivityMainBinding(@NonNull CoordinatorLayout rootView, @NonNull ImageButton btnMiniNext,
       @NonNull ImageButton btnMiniPlayPause, @NonNull ImageButton btnMiniPrevious,
-      @NonNull MaterialCardView cardAllSongs, @NonNull MaterialCardView cardBackup,
-      @NonNull MaterialCardView cardFavorites, @NonNull MaterialCardView cardPlaylists,
-      @NonNull MaterialCardView cardSelectFolder, @NonNull FrameLayout iconFavorites,
+      @NonNull MaterialCardView cardAllSongs, @NonNull MaterialCardView cardFavorites,
+      @NonNull MaterialCardView cardPlaylists, @NonNull MaterialCardView cardSelectFolder,
+      @NonNull MaterialCardView cardSettings, @NonNull FrameLayout iconFavorites,
       @NonNull FrameLayout iconPlaylists, @NonNull FrameLayout iconSongs,
       @NonNull ShapeableImageView ivMiniCover, @NonNull MaterialCardView miniPlayer,
-      @NonNull View miniPlayerProgress, @NonNull MaterialToolbar toolbar,
+      @NonNull ProgressBar miniPlayerProgress, @NonNull MaterialToolbar toolbar,
       @NonNull TextView tvMiniArtist, @NonNull TextView tvMiniTitle,
       @NonNull TextView tvSelectedFolder) {
     this.rootView = rootView;
@@ -93,10 +94,10 @@ public final class ActivityMainBinding implements ViewBinding {
     this.btnMiniPlayPause = btnMiniPlayPause;
     this.btnMiniPrevious = btnMiniPrevious;
     this.cardAllSongs = cardAllSongs;
-    this.cardBackup = cardBackup;
     this.cardFavorites = cardFavorites;
     this.cardPlaylists = cardPlaylists;
     this.cardSelectFolder = cardSelectFolder;
+    this.cardSettings = cardSettings;
     this.iconFavorites = iconFavorites;
     this.iconPlaylists = iconPlaylists;
     this.iconSongs = iconSongs;
@@ -160,12 +161,6 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.cardBackup;
-      MaterialCardView cardBackup = ViewBindings.findChildViewById(rootView, id);
-      if (cardBackup == null) {
-        break missingId;
-      }
-
       id = R.id.cardFavorites;
       MaterialCardView cardFavorites = ViewBindings.findChildViewById(rootView, id);
       if (cardFavorites == null) {
@@ -181,6 +176,12 @@ public final class ActivityMainBinding implements ViewBinding {
       id = R.id.cardSelectFolder;
       MaterialCardView cardSelectFolder = ViewBindings.findChildViewById(rootView, id);
       if (cardSelectFolder == null) {
+        break missingId;
+      }
+
+      id = R.id.cardSettings;
+      MaterialCardView cardSettings = ViewBindings.findChildViewById(rootView, id);
+      if (cardSettings == null) {
         break missingId;
       }
 
@@ -215,7 +216,7 @@ public final class ActivityMainBinding implements ViewBinding {
       }
 
       id = R.id.miniPlayerProgress;
-      View miniPlayerProgress = ViewBindings.findChildViewById(rootView, id);
+      ProgressBar miniPlayerProgress = ViewBindings.findChildViewById(rootView, id);
       if (miniPlayerProgress == null) {
         break missingId;
       }
@@ -245,9 +246,9 @@ public final class ActivityMainBinding implements ViewBinding {
       }
 
       return new ActivityMainBinding((CoordinatorLayout) rootView, btnMiniNext, btnMiniPlayPause,
-          btnMiniPrevious, cardAllSongs, cardBackup, cardFavorites, cardPlaylists, cardSelectFolder,
-          iconFavorites, iconPlaylists, iconSongs, ivMiniCover, miniPlayer, miniPlayerProgress,
-          toolbar, tvMiniArtist, tvMiniTitle, tvSelectedFolder);
+          btnMiniPrevious, cardAllSongs, cardFavorites, cardPlaylists, cardSelectFolder,
+          cardSettings, iconFavorites, iconPlaylists, iconSongs, ivMiniCover, miniPlayer,
+          miniPlayerProgress, toolbar, tvMiniArtist, tvMiniTitle, tvSelectedFolder);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

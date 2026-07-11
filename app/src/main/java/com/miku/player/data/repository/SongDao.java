@@ -23,14 +23,22 @@ interface SongDao {
     @Query("SELECT * FROM songs ORDER BY title ASC")
     LiveData<List<Song>> getAllSongs();
 
-    @Query("SELECT * FROM songs WHERE title LIKE :query OR artist LIKE :query ORDER BY title ASC")
+    @Query("SELECT * FROM songs WHERE title LIKE :query OR artist LIKE :query OR (customTitle IS NOT NULL AND customTitle LIKE :query) ORDER BY title ASC")
     LiveData<List<Song>> search(String query);
 
     @Query("SELECT * FROM songs WHERE id = :id")
     Song getSongById(long id);
 
-    @Query("SELECT * FROM songs WHERE isFavorite = 1 ORDER BY title ASC")
+    /** Versión reactiva — emite cada vez que cambia solo esta canción. */
+    @Query("SELECT * FROM songs WHERE id = :id")
+    LiveData<Song> getSongByIdLive(long id);
+
+    // Favoritos ordenados por fecha de selección: el primero marcado aparece primero
+    @Query("SELECT * FROM songs WHERE isFavorite = 1 ORDER BY favoriteOrder ASC")
     LiveData<List<Song>> getFavoriteSongs();
+
+    @Query("UPDATE songs SET isFavorite = :fav, favoriteOrder = :order WHERE id = :id")
+    void setFavoriteWithOrder(long id, boolean fav, long order);
 
     @Query("UPDATE songs SET isFavorite = :fav WHERE id = :id")
     void setFavorite(long id, boolean fav);

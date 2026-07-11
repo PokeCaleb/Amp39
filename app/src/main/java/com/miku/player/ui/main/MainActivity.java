@@ -70,8 +70,8 @@ public class MainActivity extends AppCompatActivity {
         binding.cardFavorites.setOnClickListener(v ->
                 startActivity(new Intent(this, FavoritesActivity.class)));
         binding.cardSelectFolder.setOnClickListener(v -> folderPicker.launch(null));
-        binding.cardBackup.setOnClickListener(v ->
-                startActivity(new Intent(this, BackupActivity.class)));
+        binding.cardSettings.setOnClickListener(v ->
+                startActivity(new Intent(this, com.miku.player.ui.settings.SettingsActivity.class)));
 
         binding.miniPlayer.setOnClickListener(v -> {
             if (PlayerManager.getInstance().getCurrentSongValue() != null)
@@ -104,6 +104,26 @@ public class MainActivity extends AppCompatActivity {
         pm.getIsPlaying().observe(this, playing ->
                 binding.btnMiniPlayPause.setImageResource(
                         playing ? R.drawable.ic_pause : R.drawable.ic_play));
+        startMiniProgressUpdater();
+    }
+
+    private final android.os.Handler miniProgressHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable miniProgressRunnable = new Runnable() {
+        @Override public void run() {
+            if (binding != null
+                    && binding.miniPlayer.getVisibility() == View.VISIBLE) {
+                long dur = PlayerManager.getInstance().getDuration();
+                long pos = PlayerManager.getInstance().getPositionMs();
+                if (dur > 0) binding.miniPlayerProgress.setProgress((int)((pos * 1000L) / dur));
+            }
+            miniProgressHandler.postDelayed(this, 500);
+        }
+    };
+
+    private void startMiniProgressUpdater() {
+        miniProgressHandler.removeCallbacks(miniProgressRunnable);
+        miniProgressHandler.post(miniProgressRunnable);
     }
 
     private void updateFolderLabel() {
@@ -114,5 +134,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onDestroy() { super.onDestroy(); binding = null; }
+    protected void onDestroy() {
+        miniProgressHandler.removeCallbacks(miniProgressRunnable);
+        super.onDestroy();
+        binding = null;
+    }
 }

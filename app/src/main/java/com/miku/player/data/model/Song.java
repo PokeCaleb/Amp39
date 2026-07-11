@@ -17,6 +17,7 @@ public class Song {
     private String customCoverPath;
     private long dateAdded;
     private boolean isFavorite;
+    private long favoriteOrder; // timestamp en que se marcó favorito; 0 = nunca
 
     public Song() {}
 
@@ -61,10 +62,27 @@ public class Song {
     public boolean isFavorite() { return isFavorite; }
     public void setFavorite(boolean favorite) { isFavorite = favorite; }
 
+    public long getFavoriteOrder() { return favoriteOrder; }
+    public void setFavoriteOrder(long favoriteOrder) { this.favoriteOrder = favoriteOrder; }
+
     public String getFormattedDuration() {
         long seconds = duration / 1000;
         long minutes = seconds / 60;
         seconds = seconds % 60;
         return String.format("%d:%02d", minutes, seconds);
+    }
+
+    // Equality based on stable ID so indexOf(), contains() y DiffUtil funcionen
+    // correctamente cuando las listas provienen de instancias distintas.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Song)) return false;
+        return id == ((Song) o).id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Long.hashCode(id);
     }
 }

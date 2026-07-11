@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -53,26 +54,24 @@ public class SongsActivity extends AppCompatActivity
                                 Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     } catch (Exception ignored) {}
                     final com.miku.player.data.model.Song songRef = pendingCoverSong;
-                    final String expectedPath = viewModel.getExpectedCoverPath(songRef.getId());
 
-                    // 1. Start the async file copy + DB update
-                    viewModel.updateSongCover(songRef, uri.toString());
-
-                    // 2. Invalidate Glide signature immediately — forces cache-busted reload
+                    // 1. Invalidar Glide inmediatamente para que la lista refleje el cambio visual
                     adapter.invalidateCover(this, songRef.getId());
 
-                    // 3. After the file copy finishes, invalidate again to load the real file
-                    //    and update the notification if this song is playing
-                    new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                        adapter.invalidateCover(this, songRef.getId());
-                        com.miku.player.data.model.Song playing =
-                                com.miku.player.utils.PlayerManager.getInstance().getCurrentSongValue();
-                        if (playing != null && playing.getId() == songRef.getId()) {
-                            songRef.setCustomCoverPath(expectedPath);
-                            com.miku.player.utils.PlayerManager.getInstance()
-                                    .updateCurrentSongCover(songRef);
-                        }
-                    }, 900);
+                    // 2. Iniciar copia + DB. El callback notifica cuando la ruta local está lista,
+                    //    sin depender de un delay hardcodeado.
+                    viewModel.updateSongCover(songRef, uri.toString(),
+                            (songId, localPath) -> {
+                                adapter.invalidateCover(this, songId);
+                                com.miku.player.data.model.Song playing =
+                                        com.miku.player.utils.PlayerManager.getInstance()
+                                                .getCurrentSongValue();
+                                if (playing != null && playing.getId() == songId) {
+                                    songRef.setCustomCoverPath(localPath);
+                                    com.miku.player.utils.PlayerManager.getInstance()
+                                            .updateCurrentSongCover(songRef);
+                                }
+                            });
                 }
             });
 
@@ -97,8 +96,22 @@ public class SongsActivity extends AppCompatActivity
         setupChips();
         observeViewModel();
         observeCurrentSong();
+        observeCurrentSongCoverUpdates();
+        observeCoverInvalidation();
         observeMiniPlayer();
         checkPermissionAndLoad();
+    }
+
+    /**
+     * FIX: complementa a observeCurrentSongCoverUpdates() (que solo cubre la canción
+     * que se está reproduciendo). Este cubre CUALQUIER canción de la lista cuya
+     * carátula haya cambiado desde otra pantalla (reproductor, favoritos, playlist).
+     */
+    private void observeCoverInvalidation() {
+        com.miku.player.utils.CoverSignatureManager.getInstance(this).getInvalidationEvent()
+                .observe(this, songId -> {
+                    if (songId != null) adapter.notifyCoverChanged(songId);
+                });
     }
 
     @Override
@@ -112,8 +125,11 @@ public class SongsActivity extends AppCompatActivity
         adapter = new SongsAdapter(this);
         adapter.setFavoriteListener((song, newState) -> viewModel.setFavorite(song, newState));
         binding.rvSongs.setAdapter(adapter);
-        binding.rvSongs.setLayoutManager(new LinearLayoutManager(this));
+        LinearLayoutManager lm = new LinearLayoutManager(this);
+        lm.setStackFromEnd(false);
+        binding.rvSongs.setLayoutManager(lm);
         binding.rvSongs.setHasFixedSize(true);
+        binding.rvSongs.setOverScrollMode(android.view.View.OVER_SCROLL_NEVER);
         Song playing = PlayerManager.getInstance().getCurrentSongValue();
         if (playing != null) adapter.setCurrentlyPlayingId(playing.getId());
     }
@@ -127,6 +143,19 @@ public class SongsActivity extends AppCompatActivity
             }
             public void afterTextChanged(Editable s) {}
         });
+
+        // Botón "X": limpia el texto (vuelve al hint "Buscar canciones, artistas"),
+        // quita el foco del campo y oculta el teclado.
+        binding.tilSearch.setEndIconOnClickListener(v -> {
+            binding.etSearch.setText("");
+            binding.etSearch.clearFocus();
+            hideKeyboard(binding.etSearch);
+        });
+    }
+
+    private void hideKeyboard(View view) {
+        InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (imm != null) imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
 
     private void setupChips() {
@@ -172,10 +201,14 @@ public class SongsActivity extends AppCompatActivity
                 break;
         }
 
-        adapter.submitList(filtered, () -> {
+        adapter.submitList(new ArrayList<>(filtered), () -> {
             Song playing = PlayerManager.getInstance().getCurrentSongValue();
             if (playing != null) adapter.setCurrentlyPlayingId(playing.getId());
-            if (scrollToTop) binding.rvSongs.scrollToPosition(0);
+            if (scrollToTop) {
+                // post() garantiza que el RecyclerView ya procesó la nueva lista
+                // antes de hacer scroll, evitando que aparezca en posición aleatoria.
+                binding.rvSongs.post(() -> binding.rvSongs.scrollToPosition(0));
+            }
         });
 
         binding.rvSongs.setVisibility(filtered.isEmpty() ? View.GONE : View.VISIBLE);
@@ -185,6 +218,30 @@ public class SongsActivity extends AppCompatActivity
         viewModel.getSongs().observe(this, songs -> {
             allSongs = songs != null ? songs : new ArrayList<>();
             applyFilterAndSort(false);
+        });
+    }
+
+    /**
+     * Cuando Room emite una actualización de la canción activa (por ejemplo, tras cambiar
+     * su portada desde PlayerActivity), invalida el item correspondiente en el adapter
+     * para que Glide lo recargue sin esperar a que el usuario vuelva a la lista.
+     */
+    private void observeCurrentSongCoverUpdates() {
+        PlayerManager.getInstance().getCurrentSong().observe(this, playing -> {
+            if (playing == null) return;
+            // Observar la versión reactiva de esa canción en DB
+            viewModel.getSongByIdLive(playing.getId()).observe(this, updated -> {
+                if (updated == null) return;
+                // Si cambió el customCoverPath, invalidar en el adapter
+                adapter.invalidateCover(this, updated.getId());
+                // Actualizar también la copia en allSongs para que la firma sea coherente
+                for (int i = 0; i < allSongs.size(); i++) {
+                    if (allSongs.get(i).getId() == updated.getId()) {
+                        allSongs.get(i).setCustomCoverPath(updated.getCustomCoverPath());
+                        break;
+                    }
+                }
+            });
         });
     }
 
@@ -232,7 +289,8 @@ public class SongsActivity extends AppCompatActivity
         String[] options = {
             getString(R.string.add_to_playlist),
             getString(R.string.change_cover),
-            "Cambiar nombre"
+            "Cambiar nombre",
+            "Eliminar canción"
         };
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(song.getDisplayTitle())
@@ -240,8 +298,42 @@ public class SongsActivity extends AppCompatActivity
                     if (w == 0) AddToPlaylistBottomSheet.newInstance(song)
                             .show(getSupportFragmentManager(), "add");
                     else if (w == 1) { pendingCoverSong = song; coverPickerLauncher.launch("image/*"); }
-                    else showRenameDialog(song);
+                    else if (w == 2) showRenameDialog(song);
+                    else showDeleteSongDialog(song);
                 }).show();
+    }
+
+    private void showDeleteSongDialog(Song song) {
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("Eliminar canción")
+                .setMessage("¿Qué deseas hacer con \"" + song.getDisplayTitle() + "\"?")
+                .setPositiveButton("Eliminar archivo permanentemente", (d, w) -> {
+                    // Confirmar segunda vez antes de borrar el archivo físico
+                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                            .setTitle("⚠ Eliminar archivo")
+                            .setMessage("Esto borrará el archivo de audio del dispositivo. Esta acción no se puede deshacer.")
+                            .setPositiveButton("Eliminar permanentemente", (d2, w2) ->
+                                    performDeleteSong(song, true))
+                            .setNegativeButton("Cancelar", null)
+                            .show();
+                })
+                .setNeutralButton("Quitar de la app", (d, w) -> performDeleteSong(song, false))
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void performDeleteSong(Song song, boolean deleteFile) {
+        // Si la canción está reproduciéndose, detener reproducción
+        Song playing = PlayerManager.getInstance().getCurrentSongValue();
+        if (playing != null && playing.getId() == song.getId()) {
+            PlayerManager.getInstance().playNext();
+        }
+        viewModel.deleteSong(song, deleteFile, success -> {
+            String msg = deleteFile
+                    ? (success ? "Archivo eliminado" : "Eliminado de la app (no se pudo borrar el archivo)")
+                    : "Canción quitada de la app";
+            Snackbar.make(binding.getRoot(), msg, Snackbar.LENGTH_SHORT).show();
+        });
     }
 
     private void showRenameDialog(Song song) {
@@ -302,11 +394,43 @@ public class SongsActivity extends AppCompatActivity
         binding.btnMiniPlayPause.setOnClickListener(v -> pm.togglePlayPause());
         binding.btnMiniNext.setOnClickListener(v -> pm.playNext());
         binding.btnMiniPrevious.setOnClickListener(v -> pm.playPrevious());
+
+        // Barra de progreso (seek bar) del mini player — se llama "mini seek bar"
+        // Se actualiza cada 500ms mientras la canción está activa.
+        startMiniPlayerProgressUpdater();
+    }
+
+    private final android.os.Handler miniProgressHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable miniProgressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            updateMiniPlayerProgress();
+            miniProgressHandler.postDelayed(this, 500);
+        }
+    };
+
+    private void startMiniPlayerProgressUpdater() {
+        miniProgressHandler.removeCallbacks(miniProgressRunnable);
+        miniProgressHandler.post(miniProgressRunnable);
+    }
+
+    private void updateMiniPlayerProgress() {
+        if (binding == null) return;
+        PlayerManager pm = PlayerManager.getInstance();
+        long duration = pm.getDuration();
+        long position = pm.getPositionMs();
+        if (duration <= 0 || binding.miniPlayer.getVisibility() != View.VISIBLE) return;
+        int progress = (int) ((position * 1000L) / duration);
+        binding.miniPlayerProgress.setProgress(progress);
     }
 
     @Override
     public boolean onSupportNavigateUp() { finish(); return true; }
 
     @Override
-    protected void onDestroy() { super.onDestroy(); binding = null; }
+    protected void onDestroy() {
+        miniProgressHandler.removeCallbacks(miniProgressRunnable);
+        super.onDestroy();
+        binding = null;
+    }
 }

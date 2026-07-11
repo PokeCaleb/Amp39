@@ -582,6 +582,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
           final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
           final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
           final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
+          final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
           final List<Song> _result = new ArrayList<Song>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final Song _item;
@@ -642,6 +643,9 @@ public final class PlaylistDao_Impl implements PlaylistDao {
             _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
             _tmpIsFavorite = _tmp != 0;
             _item.setFavorite(_tmpIsFavorite);
+            final long _tmpFavoriteOrder;
+            _tmpFavoriteOrder = _cursor.getLong(_cursorIndexOfFavoriteOrder);
+            _item.setFavoriteOrder(_tmpFavoriteOrder);
             _result.add(_item);
           }
           return _result;
@@ -676,6 +680,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
       final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
       final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
       final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
+      final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
       final List<Song> _result = new ArrayList<Song>(_cursor.getCount());
       while (_cursor.moveToNext()) {
         final Song _item;
@@ -736,6 +741,9 @@ public final class PlaylistDao_Impl implements PlaylistDao {
         _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
         _tmpIsFavorite = _tmp != 0;
         _item.setFavorite(_tmpIsFavorite);
+        final long _tmpFavoriteOrder;
+        _tmpFavoriteOrder = _cursor.getLong(_cursorIndexOfFavoriteOrder);
+        _item.setFavoriteOrder(_tmpFavoriteOrder);
         _result.add(_item);
       }
       return _result;
@@ -763,7 +771,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
       return;
     }
     final StringBuilder _stringBuilder = StringUtil.newStringBuilder();
-    _stringBuilder.append("SELECT `songs`.`id` AS `id`,`songs`.`title` AS `title`,`songs`.`customTitle` AS `customTitle`,`songs`.`artist` AS `artist`,`songs`.`album` AS `album`,`songs`.`duration` AS `duration`,`songs`.`path` AS `path`,`songs`.`customCoverPath` AS `customCoverPath`,`songs`.`dateAdded` AS `dateAdded`,`songs`.`isFavorite` AS `isFavorite`,_junction.`playlistId` FROM `playlist_songs` AS _junction INNER JOIN `songs` ON (_junction.`songId` = `songs`.`id`) WHERE _junction.`playlistId` IN (");
+    _stringBuilder.append("SELECT `songs`.`id` AS `id`,`songs`.`title` AS `title`,`songs`.`customTitle` AS `customTitle`,`songs`.`artist` AS `artist`,`songs`.`album` AS `album`,`songs`.`duration` AS `duration`,`songs`.`path` AS `path`,`songs`.`customCoverPath` AS `customCoverPath`,`songs`.`dateAdded` AS `dateAdded`,`songs`.`isFavorite` AS `isFavorite`,`songs`.`favoriteOrder` AS `favoriteOrder`,_junction.`playlistId` FROM `playlist_songs` AS _junction INNER JOIN `songs` ON (_junction.`songId` = `songs`.`id`) WHERE _junction.`playlistId` IN (");
     final int _inputSize = _map.size();
     StringUtil.appendPlaceholders(_stringBuilder, _inputSize);
     _stringBuilder.append(")");
@@ -779,7 +787,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
     final Cursor _cursor = DBUtil.query(__db, _stmt, false, null);
     try {
       // _junction.playlistId;
-      final int _itemKeyIndex = 10;
+      final int _itemKeyIndex = 11;
       if (_itemKeyIndex == -1) {
         return;
       }
@@ -793,6 +801,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
       final int _cursorIndexOfCustomCoverPath = 7;
       final int _cursorIndexOfDateAdded = 8;
       final int _cursorIndexOfIsFavorite = 9;
+      final int _cursorIndexOfFavoriteOrder = 10;
       while (_cursor.moveToNext()) {
         final long _tmpKey;
         _tmpKey = _cursor.getLong(_itemKeyIndex);
@@ -856,6 +865,9 @@ public final class PlaylistDao_Impl implements PlaylistDao {
           _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
           _tmpIsFavorite = _tmp != 0;
           _item_1.setFavorite(_tmpIsFavorite);
+          final long _tmpFavoriteOrder;
+          _tmpFavoriteOrder = _cursor.getLong(_cursorIndexOfFavoriteOrder);
+          _item_1.setFavoriteOrder(_tmpFavoriteOrder);
           _tmpRelation.add(_item_1);
         }
       }

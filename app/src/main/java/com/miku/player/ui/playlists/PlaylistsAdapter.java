@@ -33,8 +33,19 @@ public class PlaylistsAdapter extends ListAdapter<PlaylistWithSongs, PlaylistsAd
                 }
                 @Override
                 public boolean areContentsTheSame(@NonNull PlaylistWithSongs a, @NonNull PlaylistWithSongs b) {
-                    return a.playlist.getName().equals(b.playlist.getName())
-                            && a.getSongCount() == b.getSongCount();
+                    // Detectar cambio de nombre, cantidad de canciones y portada (custom o primera canción)
+                    if (!a.playlist.getName().equals(b.playlist.getName())) return false;
+                    if (a.getSongCount() != b.getSongCount()) return false;
+                    // Portada custom
+                    String coverA = a.playlist.getCoverPath();
+                    String coverB = b.playlist.getCoverPath();
+                    if (coverA == null ? coverB != null : !coverA.equals(coverB)) return false;
+                    // Portada de la primera canción (por si cambió su customCoverPath)
+                    String firstA = (a.songs != null && !a.songs.isEmpty())
+                            ? a.songs.get(0).getCustomCoverPath() : null;
+                    String firstB = (b.songs != null && !b.songs.isEmpty())
+                            ? b.songs.get(0).getCustomCoverPath() : null;
+                    return firstA == null ? firstB == null : firstA.equals(firstB);
                 }
             };
 
@@ -65,18 +76,25 @@ public class PlaylistsAdapter extends ListAdapter<PlaylistWithSongs, PlaylistsAd
             int count = pws.getSongCount();
             b.tvSongCount.setText(count == 1 ? "1 canción" : count + " canciones");
 
-            // Load cover: custom > first song embedded art > placeholder
+            // Portada: custom > portada real de la primera canción > placeholder
+            // Se usa resolveCoverSource para obtener el customCoverPath si existe,
+            // igual que en la lista de canciones, así los cambios de caratula se reflejan aquí.
             Object coverSource = null;
+            String sig = "default";
             if (pws.playlist.getCoverPath() != null) {
                 coverSource = android.net.Uri.parse(pws.playlist.getCoverPath());
+                sig = pws.playlist.getCoverPath();
             } else if (pws.songs != null && !pws.songs.isEmpty()) {
-                long songId = pws.songs.get(0).getId();
-                coverSource = android.net.Uri.parse(
-                        "content://media/external/audio/albumart/" + songId);
+                com.miku.player.data.model.Song first = pws.songs.get(0);
+                coverSource = com.miku.player.ui.songs.SongsAdapter.resolveCoverSource(first);
+                // La firma incluye customCoverPath para que Glide recargue cuando cambie
+                sig = first.getId() + ":" + (first.getCustomCoverPath() != null
+                        ? first.getCustomCoverPath() : "");
             }
 
             Glide.with(b.getRoot().getContext())
                     .load(coverSource)
+                    .signature(new com.bumptech.glide.signature.ObjectKey(sig))
                     .placeholder(R.drawable.ic_default_album_art)
                     .error(R.drawable.ic_default_album_art)
                     .centerCrop()

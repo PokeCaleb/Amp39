@@ -2,6 +2,8 @@ package com.miku.player.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import com.bumptech.glide.signature.ObjectKey;
 
 /**
@@ -20,6 +22,16 @@ public class CoverSignatureManager {
 
     private static volatile CoverSignatureManager INSTANCE;
     private final SharedPreferences prefs;
+
+    /**
+     * Evento global: se emite cada vez que invalidateSong() se llama, sin importar
+     * desde qué pantalla. Cualquier pantalla que muestre esa canción (lista de
+     * canciones, favoritos, detalle de playlist, reproductor) puede observarlo y
+     * refrescar SOLO esa fila/imagen, sin depender de que la pantalla que originó
+     * el cambio conozca a las demás. Esto es lo que faltaba: PlayerActivity
+     * cambiaba la carátula pero nunca avisaba a las demás pantallas.
+     */
+    private final MutableLiveData<Long> invalidationEvent = new MutableLiveData<>();
 
     private CoverSignatureManager(Context ctx) {
         prefs = ctx.getApplicationContext()
@@ -42,10 +54,14 @@ public class CoverSignatureManager {
         return new ObjectKey(global + "_" + songId + "_" + perSong);
     }
 
+    /** Observa esto para enterarte cuándo cambió la carátula de una canción, la haya cambiado quien la haya cambiado. */
+    public LiveData<Long> getInvalidationEvent() { return invalidationEvent; }
+
     /** Call when the user changes a specific song's cover. */
     public void invalidateSong(long songId) {
         int current = prefs.getInt(KEY_PREFIX + songId, 0);
         prefs.edit().putInt(KEY_PREFIX + songId, current + 1).apply();
+        invalidationEvent.postValue(songId);
     }
 
     /**

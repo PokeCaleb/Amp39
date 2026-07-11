@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -9,8 +8,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
+    <!-- MANAGE_EXTERNAL_STORAGE eliminado: no se necesita para un reproductor de música
+         y requiere justificación especial ante Google Play. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -47,6 +46,8 @@
             android:parentActivityName=".ui.main.MainActivity" />
 
         <activity android:name=".ui.backup.BackupActivity" android:exported="false"
+            android:parentActivityName=".ui.settings.SettingsActivity" />
+        <activity android:name=".ui.settings.SettingsActivity" android:exported="false"
             android:parentActivityName=".ui.main.MainActivity" />
         <activity android:name=".ui.player.PlayerActivity" android:exported="false"
             android:parentActivityName=".ui.songs.SongsActivity" />

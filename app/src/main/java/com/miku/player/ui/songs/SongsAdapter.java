@@ -50,7 +50,10 @@ public class SongsAdapter extends ListAdapter<Song, SongsAdapter.SongViewHolder>
 
     public void setShowDragHandles(boolean show) {
         this.showDragHandles = show;
-        notifyDataSetChanged();
+        // Usar payload "drag" para actualizar solo la visibilidad del handle
+        // sin recargar la portada de cada item (que causaba el parpadeo).
+        int size = getCurrentList().size();
+        if (size > 0) notifyItemRangeChanged(0, size, "drag");
     }
 
     public void setCurrentlyPlayingId(long newId) {
@@ -66,6 +69,16 @@ public class SongsAdapter extends ListAdapter<Song, SongsAdapter.SongViewHolder>
     /** Forces a cache-busted Glide reload for this song in the list. */
     public void invalidateCover(Context ctx, long songId) {
         CoverSignatureManager.getInstance(ctx).invalidateSong(songId);
+        notifyCoverChanged(songId);
+    }
+
+    /**
+     * Solo refresca la fila en pantalla (sin volver a invalidar la firma).
+     * Se usa cuando OTRA pantalla ya invalidó la firma y solo queremos que
+     * esta lista se entere y recargue esa fila — llamar a invalidateCover()
+     * aquí de nuevo re-emitiría el evento global y causaría un bucle.
+     */
+    public void notifyCoverChanged(long songId) {
         List<Song> list = getCurrentList();
         for (int i = 0; i < list.size(); i++) {
             if (list.get(i).getId() == songId) {
@@ -94,6 +107,18 @@ public class SongsAdapter extends ListAdapter<Song, SongsAdapter.SongViewHolder>
         }
     };
 
+    @Override
+    public void onViewRecycled(@NonNull SongViewHolder holder) {
+        super.onViewRecycled(holder);
+        // Limpiar tag y cancelar carga Glide al reciclar el holder.
+        // Sin esto, el tag del holder anterior persiste y puede hacer que
+        // la comparación de customCoverPath devuelva un falso-igual,
+        // mostrando la portada equivocada sin parpadeo visible pero con
+        // imagen incorrecta, o un falso-diferente causando recargas innecesarias.
+        holder.b.ivSongCover.setTag(null);
+        Glide.with(holder.b.getRoot().getContext()).clear(holder.b.ivSongCover);
+    }
+
     @NonNull
     @Override
     public SongViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -112,9 +137,14 @@ public class SongsAdapter extends ListAdapter<Song, SongsAdapter.SongViewHolder>
         if (!payloads.isEmpty()) {
             Song song = getItem(position);
             for (Object payload : payloads) {
-                if ("highlight".equals(payload)) holder.updateHighlight(song, currentlyPlayingId);
-                else if ("cover".equals(payload))
+                if ("highlight".equals(payload)) {
+                    holder.updateHighlight(song, currentlyPlayingId);
+                } else if ("cover".equals(payload)) {
                     holder.loadCover(holder.b.getRoot().getContext(), song);
+                } else if ("drag".equals(payload)) {
+                    // Solo actualizar visibilidad del handle, sin tocar la portada
+                    holder.updateDragHandle(showDragHandles);
+                }
             }
         } else {
             onBindViewHolder(holder, position);
@@ -133,8 +163,16 @@ public class SongsAdapter extends ListAdapter<Song, SongsAdapter.SongViewHolder>
             b.tvSongTitle.setText(song.getDisplayTitle());
             b.tvSongArtist.setText(song.getArtist());
             updateHighlight(song, playingId);
-            loadCover(b.getRoot().getContext(), song);
+            updateDragHandle(showDragHandles);
             updateFavoriteIcon(song.isFavorite());
+
+            // Solo recargar la portada si cambió respecto a la última cargada.
+            // Evita el parpadeo cuando DiffUtil rebindea por cambio de título o favorito.
+            String newPath = song.getCustomCoverPath();
+            if (!java.util.Objects.equals(newPath, (String) b.ivSongCover.getTag())) {
+                b.ivSongCover.setTag(newPath);
+                loadCover(b.getRoot().getContext(), song);
+            }
 
             b.btnFavorite.setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
@@ -177,6 +215,12 @@ public class SongsAdapter extends ListAdapter<Song, SongsAdapter.SongViewHolder>
             });
         }
 
+        void updateDragHandle(boolean show) {
+            if (b.ivDragHandle != null) {
+                b.ivDragHandle.setVisibility(show ? View.VISIBLE : View.GONE);
+            }
+        }
+
         void updateHighlight(Song song, long playingId) {
             Context ctx = b.getRoot().getContext();
             boolean playing = song.getId() == playingId && playingId != -1;
@@ -197,13 +241,25 @@ public class SongsAdapter extends ListAdapter<Song, SongsAdapter.SongViewHolder>
         }
 
         void loadCover(Context ctx, Song song) {
+            // FIX parpadeo: cancelar cualquier carga pendiente y limpiar la vista
+            // antes de iniciar la nueva. Sin esto RecyclerView muestra la imagen
+            // del holder anterior mientras carga la nueva, causando el parpadeo.
+            Glide.with(ctx).clear(b.ivSongCover);
+            b.ivSongCover.setImageResource(R.drawable.ic_default_album_art);
+
             Object src = resolveCoverSource(song);
+            // Si la fuente es el placeholder por defecto (sin cover real), no lanzar Glide
+            if (src instanceof Uri && ((Uri) src).toString()
+                    .startsWith("content://media/external/audio/albumart/")) {
+                // Intentar con Glide de todas formas; si falla queda el placeholder ya puesto
+            }
             Glide.with(ctx)
                     .load(src)
                     .signature(CoverSignatureManager.getInstance(ctx).signatureFor(song.getId()))
                     .placeholder(R.drawable.ic_default_album_art)
                     .error(R.drawable.ic_default_album_art)
                     .centerCrop()
+                    .dontAnimate()   // elimina el fade-in que contribuye al efecto de parpadeo
                     .into(b.ivSongCover);
         }
     }

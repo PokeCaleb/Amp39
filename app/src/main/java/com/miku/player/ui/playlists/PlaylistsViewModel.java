@@ -32,4 +32,8 @@ public class PlaylistsViewModel extends AndroidViewModel {
     public void renamePlaylist(Playlist playlist, String newName) {
         repository.renamePlaylist(playlist, newName);
     }
+
+    public void updatePlaylistCover(Playlist playlist, String coverPath) {
+        repository.updatePlaylistCover(playlist, coverPath);
+    }
 }

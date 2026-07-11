@@ -4,7 +4,6 @@ import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.os.Build;
-import androidx.appcompat.app.AppCompatDelegate;
 
 public class MikuPlayerApp extends Application {
 
@@ -13,8 +12,6 @@ public class MikuPlayerApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        // Error 11: Force dark mode always
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         createNotificationChannel();
     }
 

@@ -43,15 +43,6 @@ public class BackupActivity extends AppCompatActivity {
                 }
             });
 
-    // Picker for lists-only restore (sin carátulas)
-    private final ActivityResultLauncher<String[]> importListsOnlyPicker =
-            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
-                if (uri != null) {
-                    takePersistable(uri);
-                    confirmAndImportListsOnly(uri);
-                }
-            });
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,8 +58,6 @@ public class BackupActivity extends AppCompatActivity {
         binding.cardExport.setOnClickListener(v -> requestExport());
         binding.cardImport.setOnClickListener(v ->
                 importFullPicker.launch(new String[]{"application/zip", "*/*"}));
-        binding.cardImportListsOnly.setOnClickListener(v ->
-                importListsOnlyPicker.launch(new String[]{"application/zip", "*/*"}));
     }
 
     // ── Last backup label ─────────────────────────────────────────────────────
@@ -144,51 +133,6 @@ public class BackupActivity extends AppCompatActivity {
                             .setTitle("✓ Restauración completada")
                             .setMessage(
                                 "Listas y carátulas restauradas (" + covers + " imágenes).\n\n"
-                                + "La app se cerrará ahora para aplicar los cambios.")
-                            .setPositiveButton("Cerrar app", (d, w) ->
-                                    android.os.Process.killProcess(android.os.Process.myPid()))
-                            .setCancelable(false)
-                            .show();
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    hideProgress();
-                    showError("Error al restaurar: " + e.getMessage());
-                });
-            }
-        });
-    }
-
-    // ── Import lists only (sin carátulas del respaldo) ────────────────────────
-
-    private void confirmAndImportListsOnly(Uri zipUri) {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Restaurar solo listas")
-                .setMessage(
-                    "Se restaurarán tus listas de reproducción y favoritos, "
-                    + "pero NO las carátulas del respaldo.\n\n"
-                    + "Las carátulas se tomarán de los archivos de audio al "
-                    + "volver a escanear tu carpeta de música.\n\n¿Continuar?")
-                .setPositiveButton("Restaurar", (d, w) -> performImportListsOnly(zipUri))
-                .setNegativeButton("Cancelar", null)
-                .show();
-    }
-
-    private void performImportListsOnly(Uri zipUri) {
-        showProgress("Restaurando listas…");
-        executor.execute(() -> {
-            try {
-                backupManager.importFromUriListsOnly(zipUri);
-                AppDatabase.resetInstance();
-                runOnUiThread(() -> {
-                    hideProgress();
-                    new MaterialAlertDialogBuilder(this)
-                            .setTitle("✓ Listas restauradas")
-                            .setMessage(
-                                "Tus listas de reproducción y favoritos han sido restaurados.\n\n"
-                                + "Al abrir la app ve a la pantalla principal y toca "
-                                + "\"Seleccionar carpeta\" para que la app lea las carátulas "
-                                + "directamente de tus archivos de música.\n\n"
                                 + "La app se cerrará ahora para aplicar los cambios.")
                             .setPositiveButton("Cerrar app", (d, w) ->
                                     android.os.Process.killProcess(android.os.Process.myPid()))

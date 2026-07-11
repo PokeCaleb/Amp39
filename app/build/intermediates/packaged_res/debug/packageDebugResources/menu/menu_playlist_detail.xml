@@ -13,6 +13,11 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_change_cover"
+        android:title="Cambiar portada"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_delete"
         android:title="Eliminar"
         app:showAsAction="never" />

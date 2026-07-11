@@ -87,6 +87,7 @@ drawable gradient_scrim
 drawable ic_add
 drawable ic_app_icon
 drawable ic_backup
+drawable ic_check
 drawable ic_chevron_right
 drawable ic_default_album_art
 drawable ic_delete
@@ -109,6 +110,7 @@ drawable ic_playlist_play
 drawable ic_repeat
 drawable ic_restore
 drawable ic_search
+drawable ic_settings
 drawable ic_shuffle
 drawable ic_skip_next
 drawable ic_skip_previous
@@ -137,20 +139,22 @@ id cardBackup
 id cardExport
 id cardFavorites
 id cardImport
-id cardImportListsOnly
 id cardPlaylists
 id cardSelectFolder
+id cardSettings
 id chipGroupFilter
 id chipSortAZ
 id chipSortArtist
 id chipSortRecent
 id etSearch
 id fabAddSongs
+id fabConfirmReorder
 id fabCreatePlaylist
 id iconFavorites
 id iconPlaylists
 id iconSongs
 id ivAlbumArt
+id ivAlbumArtPreview
 id ivDragHandle
 id ivMiniCover
 id ivPlaylistCover
@@ -167,6 +171,7 @@ id rvPlaylists
 id rvSongs
 id seekBar
 id songItemRoot
+id tilSearch
 id toolbar
 id tvArtist
 id tvCurrentTime
@@ -188,6 +193,7 @@ layout activity_main
 layout activity_player
 layout activity_playlist_detail
 layout activity_playlists
+layout activity_settings
 layout activity_songs
 layout item_playlist
 layout item_song

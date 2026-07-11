@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -16,6 +17,7 @@ import androidx.viewbinding.ViewBindings;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.miku.player.R;
@@ -46,6 +48,9 @@ public final class ActivityPlaylistDetailBinding implements ViewBinding {
   public final FloatingActionButton fabAddSongs;
 
   @NonNull
+  public final ExtendedFloatingActionButton fabConfirmReorder;
+
+  @NonNull
   public final ShapeableImageView ivMiniCover;
 
   @NonNull
@@ -55,7 +60,7 @@ public final class ActivityPlaylistDetailBinding implements ViewBinding {
   public final MaterialCardView miniPlayer;
 
   @NonNull
-  public final View miniPlayerProgress;
+  public final ProgressBar miniPlayerProgress;
 
   @NonNull
   public final RecyclerView rvPlaylistSongs;
@@ -79,8 +84,9 @@ public final class ActivityPlaylistDetailBinding implements ViewBinding {
       @NonNull ImageButton btnMiniNext, @NonNull ImageButton btnMiniPlayPause,
       @NonNull ImageButton btnMiniPrevious, @NonNull MaterialButton btnPlayAll,
       @NonNull MaterialButton btnShuffleAll, @NonNull FloatingActionButton fabAddSongs,
+      @NonNull ExtendedFloatingActionButton fabConfirmReorder,
       @NonNull ShapeableImageView ivMiniCover, @NonNull ImageView ivPlaylistHeader,
-      @NonNull MaterialCardView miniPlayer, @NonNull View miniPlayerProgress,
+      @NonNull MaterialCardView miniPlayer, @NonNull ProgressBar miniPlayerProgress,
       @NonNull RecyclerView rvPlaylistSongs, @NonNull MaterialToolbar toolbar,
       @NonNull TextView tvMiniArtist, @NonNull TextView tvMiniTitle,
       @NonNull TextView tvPlaylistName, @NonNull TextView tvSongCount) {
@@ -91,6 +97,7 @@ public final class ActivityPlaylistDetailBinding implements ViewBinding {
     this.btnPlayAll = btnPlayAll;
     this.btnShuffleAll = btnShuffleAll;
     this.fabAddSongs = fabAddSongs;
+    this.fabConfirmReorder = fabConfirmReorder;
     this.ivMiniCover = ivMiniCover;
     this.ivPlaylistHeader = ivPlaylistHeader;
     this.miniPlayer = miniPlayer;
@@ -166,6 +173,12 @@ public final class ActivityPlaylistDetailBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.fabConfirmReorder;
+      ExtendedFloatingActionButton fabConfirmReorder = ViewBindings.findChildViewById(rootView, id);
+      if (fabConfirmReorder == null) {
+        break missingId;
+      }
+
       id = R.id.ivMiniCover;
       ShapeableImageView ivMiniCover = ViewBindings.findChildViewById(rootView, id);
       if (ivMiniCover == null) {
@@ -185,7 +198,7 @@ public final class ActivityPlaylistDetailBinding implements ViewBinding {
       }
 
       id = R.id.miniPlayerProgress;
-      View miniPlayerProgress = ViewBindings.findChildViewById(rootView, id);
+      ProgressBar miniPlayerProgress = ViewBindings.findChildViewById(rootView, id);
       if (miniPlayerProgress == null) {
         break missingId;
       }
@@ -227,9 +240,9 @@ public final class ActivityPlaylistDetailBinding implements ViewBinding {
       }
 
       return new ActivityPlaylistDetailBinding((CoordinatorLayout) rootView, btnMiniNext,
-          btnMiniPlayPause, btnMiniPrevious, btnPlayAll, btnShuffleAll, fabAddSongs, ivMiniCover,
-          ivPlaylistHeader, miniPlayer, miniPlayerProgress, rvPlaylistSongs, toolbar, tvMiniArtist,
-          tvMiniTitle, tvPlaylistName, tvSongCount);
+          btnMiniPlayPause, btnMiniPrevious, btnPlayAll, btnShuffleAll, fabAddSongs,
+          fabConfirmReorder, ivMiniCover, ivPlaylistHeader, miniPlayer, miniPlayerProgress,
+          rvPlaylistSongs, toolbar, tvMiniArtist, tvMiniTitle, tvPlaylistName, tvSongCount);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

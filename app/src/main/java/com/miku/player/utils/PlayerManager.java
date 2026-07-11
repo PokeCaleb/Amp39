@@ -175,6 +175,12 @@ public class PlayerManager {
      * - If customCoverPath is an absolute file path → file:// URI
      * - If customCoverPath is already a URI string   → parse it
      * - Otherwise                                    → MediaStore album art URI
+     *
+     * FIX: la URI de albumart usa ALBUM_ID, que en songs escaneados por MediaStore
+     * coincide con song.getId() solo por casualidad. Para ser seguros usamos el
+     * customCoverPath cuando existe; el fallback apunta al albumart por ID de álbum
+     * que en MediaStore se obtiene de ALBUM_ID. Como Song no almacena albumId,
+     * la fallback URI queda como intento best-effort por id.
      */
     private Uri resolveArtworkUri(Song song) {
         String cp = song.getCustomCoverPath();
@@ -185,7 +191,13 @@ public class PlayerManager {
             }
             return Uri.parse(cp);
         }
-        // Fallback: embedded MediaStore album art
+        // Fallback: embedded MediaStore album art.
+        // Nota: content://media/external/audio/albumart/<id> espera el ALBUM_ID,
+        // no el _ID de la canción. Si la canción viene de MediaStore scan, el id
+        // almacenado en Song es el _ID; en ese caso este fallback puede fallar
+        // para algunas canciones. La portada siempre queda en customCoverPath
+        // tras el escaneo (cacheEmbeddedCover), por lo que este path solo se
+        // alcanza en casos excepcionales.
         return Uri.parse("content://media/external/audio/albumart/" + song.getId());
     }
 
@@ -204,6 +216,44 @@ public class PlayerManager {
         if (controller == null || queue.isEmpty()) return;
         if (controller.getCurrentPosition() > 3000) controller.seekTo(0);
         else if (controller.hasPreviousMediaItem()) controller.seekToPreviousMediaItem();
+    }
+
+    /**
+     * Igual que playPrevious() pero SIN el comportamiento de "reiniciar la
+     * canción actual si ya lleva más de 3s de reproducción". Se usa desde el
+     * gesto de swipe, donde el usuario ya eligió explícitamente ir a la
+     * canción anterior (a diferencia del botón físico ⏮, que replica el
+     * comportamiento estándar tipo Spotify).
+     */
+    public void playPreviousForced() {
+        if (controller == null || queue.isEmpty()) return;
+        if (controller.hasPreviousMediaItem()) controller.seekToPreviousMediaItem();
+    }
+
+    /**
+     * Devuelve la canción siguiente en la cola (para precargar su carátula
+     * durante el gesto de swipe, antes de confirmar el cambio de pista).
+     * Nota: usa el orden lineal de la cola; si el shuffle está activo esto es
+     * solo una aproximación visual — la navegación real siempre la resuelve
+     * el MediaController con seekToNextMediaItem()/seekToPreviousMediaItem().
+     */
+    public Song peekNextSong() {
+        if (queue.isEmpty() || queueIndex < 0) return null;
+        int idx = queueIndex + 1;
+        if (idx >= queue.size()) {
+            if (repeatMode == Player.REPEAT_MODE_ALL) idx = 0; else return null;
+        }
+        return queue.get(idx);
+    }
+
+    /** Ver peekNextSong(). Misma lógica pero hacia atrás. */
+    public Song peekPreviousSong() {
+        if (queue.isEmpty() || queueIndex < 0) return null;
+        int idx = queueIndex - 1;
+        if (idx < 0) {
+            if (repeatMode == Player.REPEAT_MODE_ALL) idx = queue.size() - 1; else return null;
+        }
+        return queue.get(idx);
     }
 
     public void seekTo(long ms) {
