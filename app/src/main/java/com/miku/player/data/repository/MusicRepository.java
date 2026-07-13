@@ -247,6 +247,13 @@ public class MusicRepository {
                 DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                 DocumentsContract.Document.COLUMN_DISPLAY_NAME,
                 DocumentsContract.Document.COLUMN_MIME_TYPE,
+                // FIX "Recientes": fecha real de última modificación del archivo (en ms),
+                // la misma señal de recencia que MediaStore.DATE_ADDED usa para el otro
+                // camino de escaneo. Antes se usaba System.currentTimeMillis() — la hora
+                // del ESCANEO, no del archivo — así que cada vez que se reescaneaba la
+                // carpeta (por ejemplo, al reabrir la app), TODAS las canciones quedaban
+                // con timestamps casi idénticos, sin importar cuándo se agregaron de verdad.
+                DocumentsContract.Document.COLUMN_LAST_MODIFIED,
         };
         try (Cursor cursor = resolver.query(childrenUri, projection, null, null, null)) {
             if (cursor == null) return;
@@ -254,6 +261,7 @@ public class MusicRepository {
                 String mimeType   = cursor.getString(2);
                 String name       = cursor.getString(1);
                 String docId      = cursor.getString(0);
+                long lastModified = cursor.isNull(3) ? 0L : cursor.getLong(3);
                 if (mimeType == null) continue;
 
                 if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
@@ -267,8 +275,11 @@ public class MusicRepository {
                     // devolver negativo para Integer.MIN_VALUE.
                     long stableId = Math.abs((long) docId.hashCode()
                             ^ ((long) docId.length() << 32));
+                    // Si el proveedor SAF no reporta LAST_MODIFIED (algunos no lo hacen),
+                    // caemos a "ahora" solo como último recurso para esa canción puntual.
+                    long dateAdded = lastModified > 0 ? lastModified : System.currentTimeMillis();
                     Song s = new Song(stableId, title, "Artista desconocido",
-                            "Álbum desconocido", 0L, fileUri.toString(), System.currentTimeMillis());
+                            "Álbum desconocido", 0L, fileUri.toString(), dateAdded);
                     songs.add(s);
                 }
             }

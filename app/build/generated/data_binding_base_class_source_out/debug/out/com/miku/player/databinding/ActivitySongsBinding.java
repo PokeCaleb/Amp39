@@ -77,6 +77,9 @@ public final class ActivitySongsBinding implements ViewBinding {
   @NonNull
   public final TextView tvMiniTitle;
 
+  @NonNull
+  public final TextView tvSongCount;
+
   private ActivitySongsBinding(@NonNull CoordinatorLayout rootView,
       @NonNull ImageButton btnMiniNext, @NonNull ImageButton btnMiniPlayPause,
       @NonNull ImageButton btnMiniPrevious, @NonNull ChipGroup chipGroupFilter,
@@ -85,7 +88,7 @@ public final class ActivitySongsBinding implements ViewBinding {
       @NonNull MaterialCardView miniPlayer, @NonNull ProgressBar miniPlayerProgress,
       @NonNull RecyclerView rvSongs, @NonNull TextInputLayout tilSearch,
       @NonNull MaterialToolbar toolbar, @NonNull TextView tvMiniArtist,
-      @NonNull TextView tvMiniTitle) {
+      @NonNull TextView tvMiniTitle, @NonNull TextView tvSongCount) {
     this.rootView = rootView;
     this.btnMiniNext = btnMiniNext;
     this.btnMiniPlayPause = btnMiniPlayPause;
@@ -103,6 +106,7 @@ public final class ActivitySongsBinding implements ViewBinding {
     this.toolbar = toolbar;
     this.tvMiniArtist = tvMiniArtist;
     this.tvMiniTitle = tvMiniTitle;
+    this.tvSongCount = tvSongCount;
   }
 
   @Override
@@ -228,10 +232,16 @@ public final class ActivitySongsBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.tvSongCount;
+      TextView tvSongCount = ViewBindings.findChildViewById(rootView, id);
+      if (tvSongCount == null) {
+        break missingId;
+      }
+
       return new ActivitySongsBinding((CoordinatorLayout) rootView, btnMiniNext, btnMiniPlayPause,
           btnMiniPrevious, chipGroupFilter, chipSortAZ, chipSortArtist, chipSortRecent, etSearch,
           ivMiniCover, miniPlayer, miniPlayerProgress, rvSongs, tilSearch, toolbar, tvMiniArtist,
-          tvMiniTitle);
+          tvMiniTitle, tvSongCount);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

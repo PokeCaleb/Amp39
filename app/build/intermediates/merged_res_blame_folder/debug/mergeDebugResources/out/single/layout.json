@@ -12,16 +12,20 @@
         "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_settings.xml"
     },
     {
-        "merged": "com.miku.player.app-mergeDebugResources-40:/layout/activity_playlist_detail.xml",
-        "source": "com.miku.player.app-main-43:/layout/activity_playlist_detail.xml"
-    },
-    {
         "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-mergeDebugResources-40:\\layout\\activity_main.xml",
         "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_main.xml"
     },
     {
+        "merged": "com.miku.player.app-mergeDebugResources-40:/layout/activity_player.xml",
+        "source": "com.miku.player.app-main-43:/layout/activity_player.xml"
+    },
+    {
         "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-mergeDebugResources-40:\\layout\\activity_songs.xml",
         "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_songs.xml"
+    },
+    {
+        "merged": "com.miku.player.app-mergeDebugResources-40:/layout/activity_songs.xml",
+        "source": "com.miku.player.app-main-43:/layout/activity_songs.xml"
     },
     {
         "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-mergeDebugResources-40:\\layout\\item_song.xml",
@@ -38,10 +42,6 @@
     {
         "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-mergeDebugResources-40:\\layout\\activity_backup.xml",
         "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_backup.xml"
-    },
-    {
-        "merged": "com.miku.player.app-mergeDebugResources-40:/layout/activity_playlists.xml",
-        "source": "com.miku.player.app-main-43:/layout/activity_playlists.xml"
     },
     {
         "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-mergeDebugResources-40:\\layout\\activity_favorites.xml",

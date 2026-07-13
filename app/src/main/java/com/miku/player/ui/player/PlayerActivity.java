@@ -332,6 +332,16 @@ public class PlayerActivity extends AppCompatActivity {
     private void setupControls() {
         PlayerManager pm = PlayerManager.getInstance();
 
+        // FIX: sincronizar con el estado REAL del reproductor al entrar a la pantalla.
+        // Antes 'shuffleOn'/'repeatMode' siempre arrancaban en su valor por defecto
+        // (false/OFF) sin importar el estado real — si volvías a esta pantalla con
+        // shuffle o repeat ya activados, los íconos se veían apagados hasta volver
+        // a tocarlos.
+        shuffleOn = pm.isShuffleOn();
+        repeatMode = pm.getRepeatMode();
+        binding.btnShuffle.setAlpha(shuffleOn ? 1f : 0.4f);
+        updateRepeatIcon();
+
         binding.btnPlayPause.setOnClickListener(v -> pm.togglePlayPause());
         binding.btnNext.setOnClickListener(v -> pm.playNext());
         binding.btnPrevious.setOnClickListener(v -> pm.playPrevious());
@@ -483,6 +493,11 @@ public class PlayerActivity extends AppCompatActivity {
 
     private void updateRepeatIcon() {
         binding.btnRepeat.setAlpha(repeatMode == Player.REPEAT_MODE_OFF ? 0.4f : 1f);
+        // FIX: antes REPEAT_MODE_ONE y REPEAT_MODE_ALL se veían idénticos (mismo
+        // ícono, mismo alpha). El badge "1" distingue "repetir esta canción" de
+        // "repetir toda la lista".
+        binding.tvRepeatOneBadge.setVisibility(
+                repeatMode == Player.REPEAT_MODE_ONE ? View.VISIBLE : View.GONE);
     }
 
     private void setupMenu() {

@@ -80,7 +80,11 @@
         android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
         android:textColor="@color/md_theme_onSurface"
         android:maxLines="1"
-        android:ellipsize="end"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:singleLine="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:gravity="center"
         app:layout_constraintTop_toBottomOf="@id/ivAlbumArt"
         app:layout_constraintStart_toStartOf="parent"
@@ -227,15 +231,38 @@
             android:contentDescription="@string/next" />
 
         <!-- Repeat -->
-        <ImageButton
-            android:id="@+id/btnRepeat"
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_repeat"
-            android:tint="@color/md_theme_onSurfaceVariant"
-            android:contentDescription="Repetir" />
+            android:layout_weight="1">
+
+            <ImageButton
+                android:id="@+id/btnRepeat"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_repeat"
+                android:tint="@color/md_theme_onSurfaceVariant"
+                android:contentDescription="Repetir" />
+
+            <!-- FIX: distingue REPEAT_MODE_ONE de REPEAT_MODE_ALL, antes se veían
+                 idénticos (solo cambiaba el alpha del mismo ícono para ambos). -->
+            <TextView
+                android:id="@+id/tvRepeatOneBadge"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_gravity="center_horizontal|top"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/bg_repeat_one_badge"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="1"
+                android:textColor="@color/md_theme_onPrimary"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
+        </FrameLayout>
 
     </LinearLayout>
 

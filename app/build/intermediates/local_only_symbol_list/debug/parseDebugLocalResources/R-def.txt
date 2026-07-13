@@ -83,6 +83,7 @@ dimen spacing_xxl
 dimen toolbar_height
 drawable bg_icon_circle_primary
 drawable bg_miku_waves
+drawable bg_repeat_one_badge
 drawable gradient_scrim
 drawable ic_add
 drawable ic_app_icon
@@ -183,6 +184,7 @@ id tvMiniTitle
 id tvNowPlayingLabel
 id tvPlaylistName
 id tvProgress
+id tvRepeatOneBadge
 id tvSelectedFolder
 id tvSongArtist
 id tvSongCount

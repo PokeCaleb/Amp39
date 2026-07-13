@@ -3165,6 +3165,7 @@ drawable avd_hide_password
 drawable avd_show_password
 drawable bg_icon_circle_primary
 drawable bg_miku_waves
+drawable bg_repeat_one_badge
 drawable btn_checkbox_checked_mtrl
 drawable btn_checkbox_checked_to_unchecked_mtrl_animation
 drawable btn_checkbox_unchecked_mtrl
@@ -4007,6 +4008,7 @@ id tvMiniTitle
 id tvNowPlayingLabel
 id tvPlaylistName
 id tvProgress
+id tvRepeatOneBadge
 id tvSelectedFolder
 id tvSongArtist
 id tvSongCount

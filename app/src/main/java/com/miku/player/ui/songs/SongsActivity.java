@@ -37,6 +37,7 @@ public class SongsActivity extends AppCompatActivity
     private static final int SORT_AZ     = 0;
     private static final int SORT_RECENT = 1;
     private static final int SORT_ARTIST = 2;
+    private static final String KEY_SORT_MODE = "songs_sort_mode";
 
     private ActivitySongsBinding binding;
     private SongsAdapter adapter;
@@ -159,12 +160,21 @@ public class SongsActivity extends AppCompatActivity
     }
 
     private void setupChips() {
+        // FIX: restaurar el último orden elegido por el usuario (antes siempre volvía a A-Z)
+        SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
+        currentSort = prefs.getInt(KEY_SORT_MODE, SORT_AZ);
+        int checkedChipId = currentSort == SORT_RECENT ? R.id.chipSortRecent
+                : currentSort == SORT_ARTIST ? R.id.chipSortArtist
+                : R.id.chipSortAZ;
+        binding.chipGroupFilter.check(checkedChipId);
+
         binding.chipGroupFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.isEmpty()) return;
             int id = checkedIds.get(0);
             if (id == R.id.chipSortAZ)     currentSort = SORT_AZ;
             else if (id == R.id.chipSortRecent) currentSort = SORT_RECENT;
             else if (id == R.id.chipSortArtist) currentSort = SORT_ARTIST;
+            prefs.edit().putInt(KEY_SORT_MODE, currentSort).apply();
             applyFilterAndSort(true);
         });
     }
@@ -200,6 +210,8 @@ public class SongsActivity extends AppCompatActivity
                         s -> s.getTitle().toLowerCase()));
                 break;
         }
+
+        binding.tvSongCount.setText(getString(R.string.songs_count, filtered.size()));
 
         adapter.submitList(new ArrayList<>(filtered), () -> {
             Song playing = PlayerManager.getInstance().getCurrentSongValue();
