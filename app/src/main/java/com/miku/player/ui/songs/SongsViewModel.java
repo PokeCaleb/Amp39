@@ -34,6 +34,11 @@ public class SongsViewModel extends AndroidViewModel {
         repository.updateSongCover(song, coverPath, callback);
     }
 
+    public void updateSongCover(Song song, String coverPath, boolean writeToFile,
+                                MusicRepository.CoverUpdateCallback callback) {
+        repository.updateSongCover(song, coverPath, writeToFile, callback);
+    }
+
     public androidx.lifecycle.LiveData<com.miku.player.data.model.Song> getSongByIdLive(long id) {
         return repository.getSongByIdLive(id);
     }
@@ -56,6 +61,7 @@ public class SongsViewModel extends AndroidViewModel {
                 public void onSuccess() {}
                 public void onError(String msg) {
                     android.util.Log.w("SongsVM", "Title tag write failed: " + msg);
+                    android.widget.Toast.makeText(activity, msg, android.widget.Toast.LENGTH_LONG).show();
                 }
             });
     }

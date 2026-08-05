@@ -22,7 +22,9 @@ import com.miku.player.data.model.PlaylistWithSongs;
 import com.miku.player.data.model.Song;
 import com.miku.player.databinding.ActivityPlaylistDetailBinding;
 import com.miku.player.ui.player.PlayerActivity;
+import com.miku.player.utils.ActivityTransitions;
 import com.miku.player.utils.PlayerManager;
+import com.miku.player.utils.ViewAnimUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,13 +63,15 @@ public class PlaylistDetailActivity extends AppCompatActivity
                 final Song songRef = pendingCoverSong;
 
                 adapter.invalidateCover(this, songRef.getId());
-                viewModel.updateSongCover(songRef, uri.toString(), (songId, localPath) -> {
-                    adapter.invalidateCover(this, songId);
-                    Song playing = PlayerManager.getInstance().getCurrentSongValue();
-                    if (playing != null && playing.getId() == songId) {
-                        songRef.setCustomCoverPath(localPath);
-                        PlayerManager.getInstance().updateCurrentSongCover(songRef);
-                    }
+                com.miku.player.utils.CoverWriteConfirm.ask(this, songRef.getPath(), writeToFile -> {
+                    viewModel.updateSongCover(songRef, uri.toString(), writeToFile, (songId, localPath) -> {
+                        adapter.invalidateCover(this, songId);
+                        Song playing = PlayerManager.getInstance().getCurrentSongValue();
+                        if (playing != null && playing.getId() == songId) {
+                            songRef.setCustomCoverPath(localPath);
+                            PlayerManager.getInstance().updateCurrentSongCover(songRef);
+                        }
+                    });
                 });
             });
 
@@ -82,7 +86,10 @@ public class PlaylistDetailActivity extends AppCompatActivity
 
         // Do NOT call setSupportActionBar — it hijacks menu item clicks.
         // Handle navigation and menu directly on the toolbar object.
-        binding.toolbar.setNavigationOnClickListener(v -> finish());
+        binding.toolbar.setNavigationOnClickListener(v -> {
+            finish();
+            ActivityTransitions.back(this);
+        });
 
         viewModel = new ViewModelProvider(this,
                 new PlaylistDetailViewModelFactory(getApplication(), playlistId))
@@ -161,8 +168,10 @@ public class PlaylistDetailActivity extends AppCompatActivity
             Object coverSource = null;
             String sig = "default";
             if (pws.playlist.getCoverPath() != null) {
-                coverSource = android.net.Uri.parse(pws.playlist.getCoverPath());
-                sig = pws.playlist.getCoverPath();
+                Object[] resolved = PlaylistsAdapter.resolvePlaylistCoverSourceAndSignature(
+                        pws.playlist.getCoverPath());
+                coverSource = resolved[0];
+                sig = (String) resolved[1];
             } else if (!junctionSongs.isEmpty()) {
                 com.miku.player.data.model.Song first = junctionSongs.get(0);
                 coverSource = com.miku.player.ui.songs.SongsAdapter.resolveCoverSource(first);
@@ -208,6 +217,7 @@ public class PlaylistDetailActivity extends AppCompatActivity
             if (!list.isEmpty()) {
                 PlayerManager.getInstance().playSong(list.get(0), list);
                 startActivity(new Intent(this, PlayerActivity.class));
+                ActivityTransitions.forward(this);
             }
         });
 
@@ -217,6 +227,7 @@ public class PlaylistDetailActivity extends AppCompatActivity
                 Collections.shuffle(shuffled);
                 PlayerManager.getInstance().playSong(shuffled.get(0), shuffled);
                 startActivity(new Intent(this, PlayerActivity.class));
+                ActivityTransitions.forward(this);
             }
         });
     }
@@ -290,6 +301,7 @@ public class PlaylistDetailActivity extends AppCompatActivity
                 .setPositiveButton("Eliminar", (d, w) -> {
                     viewModel.deletePlaylist(currentPlaylist.playlist);
                     finish();
+                    ActivityTransitions.back(this);
                 })
                 .setNegativeButton(getString(R.string.cancel), null)
                 .show();
@@ -303,12 +315,14 @@ public class PlaylistDetailActivity extends AppCompatActivity
         Song currentlyPlaying = pm.getCurrentSongValue();
         if (currentlyPlaying != null && currentlyPlaying.getId() == song.getId()) {
             startActivity(new Intent(this, PlayerActivity.class));
+            ActivityTransitions.forward(this);
             return;
         }
         List<Song> list = adapter.getSongs();
         if (!list.isEmpty()) {
             pm.playSong(song, new ArrayList<>(list));
             startActivity(new Intent(this, PlayerActivity.class));
+            ActivityTransitions.forward(this);
         }
     }
 
@@ -352,11 +366,24 @@ public class PlaylistDetailActivity extends AppCompatActivity
                             ? editText.getText().toString().trim() : "";
                     if (newName.isEmpty() || newName.equals(song.getDisplayTitle())) return;
                     viewModel.updateCustomTitle(song, newName, this);
+                    syncPlayerManagerTitle(song, newName);
                 })
-                .setNeutralButton("Restablecer original", (d, w) ->
-                        viewModel.updateCustomTitle(song, null, this))
+                .setNeutralButton("Restablecer original", (d, w) -> {
+                    viewModel.updateCustomTitle(song, null, this);
+                    syncPlayerManagerTitle(song, null);
+                })
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+
+    /** Ver nota equivalente en SongsActivity. */
+    private void syncPlayerManagerTitle(Song song, String newTitle) {
+        PlayerManager pm = PlayerManager.getInstance();
+        Song playing = pm.getCurrentSongValue();
+        if (playing != null && playing.getId() == song.getId()) {
+            song.setCustomTitle(newTitle);
+            pm.updateCurrentSongMetadata(song);
+        }
     }
 
     private void showDeleteSongDialog(Song song) {
@@ -424,9 +451,9 @@ public class PlaylistDetailActivity extends AppCompatActivity
     private void observeMiniPlayer() {
         PlayerManager pm = PlayerManager.getInstance();
         pm.getCurrentSong().observe(this, song -> {
-            if (song == null) { binding.miniPlayer.setVisibility(View.GONE); return; }
-            binding.miniPlayer.setVisibility(View.VISIBLE);
-            binding.tvMiniTitle.setText(song.getTitle());
+            if (song == null) { com.miku.player.utils.ViewAnimUtils.animateMiniPlayerVisibility(binding.miniPlayer, false); return; }
+            com.miku.player.utils.ViewAnimUtils.animateMiniPlayerVisibility(binding.miniPlayer, true);
+            binding.tvMiniTitle.setText(song.getDisplayTitle()); // FIX: mostraba el título original, no el personalizado
             binding.tvMiniArtist.setText(song.getArtist());
             Glide.with(this).clear(binding.ivMiniCover);
             binding.ivMiniCover.setImageResource(R.drawable.ic_default_album_art);
@@ -440,11 +467,13 @@ public class PlaylistDetailActivity extends AppCompatActivity
         pm.getIsPlaying().observe(this, playing ->
                 binding.btnMiniPlayPause.setImageResource(
                         playing ? R.drawable.ic_pause : R.drawable.ic_play));
-        binding.miniPlayer.setOnClickListener(v ->
-                startActivity(new Intent(this, PlayerActivity.class)));
-        binding.btnMiniPlayPause.setOnClickListener(v -> pm.togglePlayPause());
-        binding.btnMiniNext.setOnClickListener(v -> pm.playNext());
-        binding.btnMiniPrevious.setOnClickListener(v -> pm.playPrevious());
+        binding.miniPlayer.setOnClickListener(v -> {
+            startActivity(new Intent(this, PlayerActivity.class));
+            ActivityTransitions.forward(this);
+        });
+        binding.btnMiniPlayPause.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.togglePlayPause(); });
+        binding.btnMiniNext.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playNext(); });
+        binding.btnMiniPrevious.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playPrevious(); });
         startMiniProgressUpdater();
     }
 

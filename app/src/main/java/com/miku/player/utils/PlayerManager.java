@@ -103,6 +103,21 @@ public class PlayerManager {
 
     // ── Playback ──────────────────────────────────────────────────────────────
 
+    private final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+
+    /**
+     * FIX de rendimiento: antes, el bucle que arma un MediaItem por cada canción
+     * de la cola (buildMediaItem() → resolveArtworkUri(), que hace un
+     * File.exists() por canción para resolver la carátula) se ejecutaba de forma
+     * SÍNCRONA en el hilo principal, cada vez que tocabas cualquier canción de
+     * una lista — no solo al usar los botones de siguiente/anterior (esos usan
+     * seekToNextMediaItem()/seekToPreviousMediaItem() sobre la cola ya armada,
+     * eso sí era rápido). En listas grandes (cientos de canciones), esos
+     * cientos de comprobaciones de archivo bloqueaban el hilo principal el
+     * tiempo suficiente para sentirse como un retraso antes de que sonara la
+     * canción. Ahora el armado ocurre en segundo plano, y solo se vuelve al
+     * hilo principal para hablar con el MediaController (Media3 lo exige).
+     */
     public void playSong(Song song, List<Song> songs) {
         if (controller == null) return;
 
@@ -114,20 +129,25 @@ public class PlayerManager {
             if (songs.get(i).getId() == song.getId()) { idx = i; break; }
         }
         if (idx == -1) idx = 0;
+        final int finalIdx = idx;
         queueIndex = idx;
 
-        List<MediaItem> items = new ArrayList<>();
-        for (Song s : songs) {
-            items.add(buildMediaItem(s));
-        }
+        bgExecutor.execute(() -> {
+            List<MediaItem> items = new ArrayList<>();
+            for (Song s : songs) {
+                items.add(buildMediaItem(s));
+            }
+            mainHandler.post(() -> {
+                if (controller == null) return;
+                controller.setMediaItems(items, finalIdx, 0L);
+                controller.prepare();
+                controller.play();
 
-        controller.setMediaItems(items, idx, 0L);
-        controller.prepare();
-        controller.play();
-
-        currentSong.postValue(song);
-        currentIndex.postValue(idx);
-        isPlaying.postValue(true);
+                currentSong.postValue(song);
+                currentIndex.postValue(finalIdx);
+                isPlaying.postValue(true);
+            });
+        });
     }
 
     /**
@@ -148,6 +168,17 @@ public class PlayerManager {
     }
 
     /**
+     * Igual que updateCurrentSongCover() — buildMediaItem() ya reconstruye TODOS
+     * los metadatos (título, artista, carátula), así que sirve para cualquier
+     * cambio. Se agrega con este nombre para usarlo tras renombrar una canción:
+     * antes, renombrar la canción que se está reproduciendo no actualizaba la
+     * notificación/pantalla de bloqueo hasta el siguiente cambio de pista.
+     */
+    public void updateCurrentSongMetadata(Song song) {
+        updateCurrentSongCover(song);
+    }
+
+    /**
      * Builds a MediaItem for a Song, embedding the correct artworkUri so that
      * DefaultMediaNotificationProvider can load it into the notification.
      *
@@ -162,7 +193,10 @@ public class PlayerManager {
                 .setUri(Uri.parse(song.getPath()))
                 .setMediaId(String.valueOf(song.getId()))
                 .setMediaMetadata(new MediaMetadata.Builder()
-                        .setTitle(song.getTitle())
+                        // FIX: usaba el título ORIGINAL del archivo — una canción
+                        // renombrada seguía mostrando su nombre viejo en la
+                        // notificación, pantalla de bloqueo, Bluetooth del auto, etc.
+                        .setTitle(song.getDisplayTitle())
                         .setArtist(song.getArtist())
                         .setAlbumTitle(song.getAlbum())
                         .setArtworkUri(artworkUri)

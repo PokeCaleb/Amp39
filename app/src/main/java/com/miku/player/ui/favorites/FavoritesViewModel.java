@@ -38,12 +38,18 @@ public class FavoritesViewModel extends AndroidViewModel {
         repository.updateSongCover(song, coverPath, callback);
     }
 
+    public void updateSongCover(Song song, String coverPath, boolean writeToFile,
+                                MusicRepository.CoverUpdateCallback callback) {
+        repository.updateSongCover(song, coverPath, writeToFile, callback);
+    }
+
     public void updateCustomTitle(Song song, String newTitle, android.app.Activity activity) {
         repository.updateCustomTitle(song, newTitle, activity,
             new com.miku.player.utils.TagWriter.Result() {
                 public void onSuccess() {}
                 public void onError(String msg) {
                     android.util.Log.w("FavoritesVM", "Title tag write failed: " + msg);
+                    android.widget.Toast.makeText(activity, msg, android.widget.Toast.LENGTH_LONG).show();
                 }
             });
     }

@@ -28,7 +28,7 @@ import java.util.zip.ZipOutputStream;
 /**
  * Handles export (to Downloads via MediaStore or File) and import (from a user-picked URI).
  *
- * Export format: a ZIP file at Downloads/MikuPlayer/mikuplayer_backup_YYYYMMDD_HHmmss.zip
+ * Export format: a ZIP file at Downloads/Amp39/amp39_backup_YYYYMMDD_HHmmss.zip
  *   database/miku_player.db   — full Room database (WAL checkpointed)
  *   covers/<name>.jpg         — user-set cover images
  *   prefs.properties          — folder URI and name
@@ -38,7 +38,7 @@ import java.util.zip.ZipOutputStream;
  */
 public class BackupManager {
 
-    static final String BACKUP_FOLDER    = "MikuPlayer";
+    static final String BACKUP_FOLDER    = "Amp39";
     private static final String DB_FILE  = "miku_player.db";
     private static final String COVERS   = "covers";
     private static final String PREFS_F  = "prefs.properties";
@@ -58,14 +58,14 @@ public class BackupManager {
     // ── Export ────────────────────────────────────────────────────────────────
 
     /**
-     * Creates a ZIP backup and saves it to Downloads/MikuPlayer/.
+     * Creates a ZIP backup and saves it to Downloads/Amp39/.
      * Returns the file name so it can be shown to the user.
      */
     public String export() throws IOException {
         // 1. Checkpoint WAL
         checkpointWal();
 
-        String fileName = "mikuplayer_backup_"
+        String fileName = "amp39_backup_"
                 + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date())
                 + ".zip";
 
@@ -157,12 +157,14 @@ public class BackupManager {
 
         if (!dbRestored) {
             throw new IOException(
-                "El archivo seleccionado no es un respaldo válido de MikuPlayer.");
+                "El archivo seleccionado no es un respaldo válido de Amp39.");
         }
 
         // Fix any customCoverPath that was stored as an external URI (content://).
         // After restore those URIs are invalid; remap them to local files if they exist.
         fixCoverPathsAfterRestore(coversDir);
+        // Igual que arriba, pero para las portadas de PLAYLISTS.
+        fixPlaylistCoverPathsAfterRestore(coversDir);
 
         // Bump the global Glide signature so ALL cached cover images are discarded.
         // Without this, Glide serves stale cached bitmaps from the previous install
@@ -182,7 +184,7 @@ public class BackupManager {
     // ── Private helpers ───────────────────────────────────────────────────────
 
     /**
-     * Opens an OutputStream into Downloads/MikuPlayer/<fileName>.
+     * Opens an OutputStream into Downloads/Amp39/<fileName>.
      * Uses MediaStore on Android 10+ (API 29+) — no WRITE permission needed.
      * Uses File directly on Android 9 and below.
      */
@@ -233,7 +235,7 @@ public class BackupManager {
         if (folderUri  != null) props.setProperty(MainActivity.KEY_FOLDER_URI,  folderUri);
         if (folderName != null) props.setProperty(MainActivity.KEY_FOLDER_NAME, folderName);
         java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-        props.store(bos, "MikuPlayer backup");
+        props.store(bos, "Amp39 backup");
         return bos.toByteArray();
     }
 
@@ -290,6 +292,45 @@ public class BackupManager {
         }
         dir.delete();
     }
+    /**
+     * Mismo propósito que fixCoverPathsAfterRestore(), pero para la tabla "playlists"
+     * en vez de "songs". Remapea coverPath a playlist_cover_<id>.jpg si el archivo
+     * restaurado existe pero la ruta guardada en la DB ya no es válida (URI content://
+     * de una instalación anterior, o ruta absoluta que cambió de dispositivo).
+     */
+    private void fixPlaylistCoverPathsAfterRestore(File coversDir) {
+        try {
+            android.database.sqlite.SQLiteDatabase db =
+                android.database.sqlite.SQLiteDatabase.openDatabase(
+                    ctx.getDatabasePath(DB_FILE).getAbsolutePath(),
+                    null,
+                    android.database.sqlite.SQLiteDatabase.OPEN_READWRITE);
+
+            android.database.Cursor cursor = db.rawQuery(
+                "SELECT id, coverPath FROM playlists WHERE coverPath IS NOT NULL", null);
+
+            while (cursor.moveToNext()) {
+                long id = cursor.getLong(0);
+                String cp = cursor.getString(1);
+                if (cp == null) continue;
+
+                boolean needsFix = cp.startsWith("content://") || !new File(cp).exists();
+                if (needsFix) {
+                    File localFile = new File(coversDir, "playlist_cover_" + id + ".jpg");
+                    if (localFile.exists()) {
+                        android.content.ContentValues cv = new android.content.ContentValues();
+                        cv.put("coverPath", localFile.getAbsolutePath());
+                        db.update("playlists", cv, "id = ?", new String[]{String.valueOf(id)});
+                    }
+                }
+            }
+            cursor.close();
+            db.close();
+        } catch (Exception e) {
+            android.util.Log.e("BackupManager", "fixPlaylistCoverPathsAfterRestore failed", e);
+        }
+    }
+
     /**
      * After a restore, songs whose customCoverPath is a content:// URI (set before
      * the copy-on-assign fix) will no longer be readable. This method scans the songs
@@ -369,12 +410,16 @@ public class BackupManager {
 
         if (!dbRestored) {
             throw new IOException(
-                "El archivo seleccionado no es un respaldo válido de MikuPlayer.");
+                "El archivo seleccionado no es un respaldo válido de Amp39.");
         }
 
         // Clear ALL customCoverPath values so the next scan extracts covers
         // directly from the audio files using MediaMetadataRetriever.
         clearAllCoverPaths();
+        // Mismo criterio para las portadas de playlists: ya no existen los archivos
+        // (se borraron abajo), así que se limpia la referencia para que la UI caiga
+        // en su portada por defecto en vez de un ícono roto.
+        clearAllPlaylistCoverPaths();
 
         // Also delete any previously cached cover files so they get re-extracted
         deleteDir(new File(ctx.getFilesDir(), COVERS));
@@ -400,6 +445,23 @@ public class BackupManager {
             db.close();
         } catch (Exception e) {
             android.util.Log.e("BackupManager", "clearAllCoverPaths failed", e);
+        }
+    }
+
+    /** Igual que clearAllCoverPaths() pero para playlists.coverPath. */
+    private void clearAllPlaylistCoverPaths() {
+        try {
+            android.database.sqlite.SQLiteDatabase db =
+                android.database.sqlite.SQLiteDatabase.openDatabase(
+                    ctx.getDatabasePath(DB_FILE).getAbsolutePath(),
+                    null,
+                    android.database.sqlite.SQLiteDatabase.OPEN_READWRITE);
+            android.content.ContentValues cv = new android.content.ContentValues();
+            cv.putNull("coverPath");
+            db.update("playlists", cv, null, null);
+            db.close();
+        } catch (Exception e) {
+            android.util.Log.e("BackupManager", "clearAllPlaylistCoverPaths failed", e);
         }
     }
 

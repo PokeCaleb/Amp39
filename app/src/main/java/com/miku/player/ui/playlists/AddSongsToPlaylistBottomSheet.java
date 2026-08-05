@@ -140,7 +140,10 @@ public class AddSongsToPlaylistBottomSheet extends BottomSheetDialogFragment
         MusicRepository.getInstance(requireContext()).addSongToPlaylist(playlistId, song);
         Toast.makeText(requireContext(),
                 "\"" + song.getDisplayTitle() + "\" agregada", Toast.LENGTH_SHORT).show();
-        dismiss();
+        // FIX: antes se cerraba el bottom sheet con cada canción agregada, obligando
+        // a reabrirlo para seguir agregando más. Ahora se queda abierto — el usuario
+        // lo cierra cuando quiera bajando la pestaña (el repositorio ya evita
+        // duplicados si se toca la misma canción más de una vez).
     }
 
     @Override

@@ -8,7 +8,7 @@ import com.miku.player.data.model.*;
 
 @Database(
     entities = {Song.class, Playlist.class, PlaylistSong.class},
-    version = 9,
+    version = 11,
     exportSchema = true
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -73,6 +73,31 @@ public abstract class AppDatabase extends RoomDatabase {
                                     // Migrar favoritos existentes: asignar orden basado en rowid
                                     // para que no queden todos en 0 (lo que haría el orden arbitrario)
                                     db.execSQL("UPDATE songs SET favoriteOrder = id WHERE isFavorite = 1");
+                                }
+                            },
+                            // v9→v10: columna sortOrder para permitir reordenar playlists
+                            // arrastrándolas (antes solo se ordenaban por fecha de creación).
+                            new androidx.room.migration.Migration(9, 10) {
+                                @Override public void migrate(androidx.sqlite.db.SupportSQLiteDatabase db) {
+                                    db.execSQL("ALTER TABLE playlists ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0");
+                                    // Semilla: igualar sortOrder a createdAt para que el orden
+                                    // existente (más reciente primero) no cambie tras la migración.
+                                    db.execSQL("UPDATE playlists SET sortOrder = createdAt");
+                                }
+                            },
+                            // v10→v11: separa "fecha agregada" (dateAdded, ya existía y se
+                            // preserva entre escaneos) de "fecha modificada" (dateModified,
+                            // nueva — se actualiza en cada escaneo con la fecha real del
+                            // archivo). Antes solo existía dateAdded, y antes de eso mismo
+                            // se comportaba como dateModified (se sobreescribía en cada
+                            // escaneo) — separarlas permite ofrecer ambos criterios de orden.
+                            new androidx.room.migration.Migration(10, 11) {
+                                @Override public void migrate(androidx.sqlite.db.SupportSQLiteDatabase db) {
+                                    db.execSQL("ALTER TABLE songs ADD COLUMN dateModified INTEGER NOT NULL DEFAULT 0");
+                                    // Semilla: como no sabemos la fecha real de modificación
+                                    // todavía (se llenará en el próximo escaneo), arrancar
+                                    // igual a dateAdded es la aproximación más razonable.
+                                    db.execSQL("UPDATE songs SET dateModified = dateAdded");
                                 }
                             }
                         )

@@ -15,8 +15,10 @@ import com.miku.player.databinding.ActivityFavoritesBinding;
 import com.miku.player.ui.player.PlayerActivity;
 import com.miku.player.ui.playlists.AddToPlaylistBottomSheet;
 import com.miku.player.ui.songs.SongsAdapter;
+import com.miku.player.utils.ActivityTransitions;
 import com.miku.player.utils.CoverSignatureManager;
 import com.miku.player.utils.PlayerManager;
+import com.miku.player.utils.ViewAnimUtils;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,13 +41,15 @@ public class FavoritesActivity extends AppCompatActivity
                 final Song songRef = pendingCoverSong;
 
                 adapter.invalidateCover(this, songRef.getId());
-                viewModel.updateSongCover(songRef, uri.toString(), (songId, localPath) -> {
-                    adapter.invalidateCover(this, songId);
-                    Song playing = PlayerManager.getInstance().getCurrentSongValue();
-                    if (playing != null && playing.getId() == songId) {
-                        songRef.setCustomCoverPath(localPath);
-                        PlayerManager.getInstance().updateCurrentSongCover(songRef);
-                    }
+                com.miku.player.utils.CoverWriteConfirm.ask(this, songRef.getPath(), writeToFile -> {
+                    viewModel.updateSongCover(songRef, uri.toString(), writeToFile, (songId, localPath) -> {
+                        adapter.invalidateCover(this, songId);
+                        Song playing = PlayerManager.getInstance().getCurrentSongValue();
+                        if (playing != null && playing.getId() == songId) {
+                            songRef.setCustomCoverPath(localPath);
+                            PlayerManager.getInstance().updateCurrentSongCover(songRef);
+                        }
+                    });
                 });
             });
 
@@ -123,6 +127,7 @@ public class FavoritesActivity extends AppCompatActivity
         Song currentlyPlaying = pm.getCurrentSongValue();
         if (currentlyPlaying != null && currentlyPlaying.getId() == song.getId()) {
             startActivity(new Intent(this, PlayerActivity.class));
+            ActivityTransitions.forward(this);
             return;
         }
         List<Song> adapterList = adapter.getCurrentList();
@@ -130,6 +135,7 @@ public class FavoritesActivity extends AppCompatActivity
                 ? new ArrayList<>(adapterList) : new ArrayList<>(currentSongs);
         pm.playSong(song, playQueue);
         startActivity(new Intent(this, PlayerActivity.class));
+        ActivityTransitions.forward(this);
     }
 
     @Override
@@ -173,11 +179,24 @@ public class FavoritesActivity extends AppCompatActivity
                             ? editText.getText().toString().trim() : "";
                     if (newName.isEmpty() || newName.equals(song.getDisplayTitle())) return;
                     viewModel.updateCustomTitle(song, newName, this);
+                    syncPlayerManagerTitle(song, newName);
                 })
-                .setNeutralButton("Restablecer original", (d, w) ->
-                        viewModel.updateCustomTitle(song, null, this))
+                .setNeutralButton("Restablecer original", (d, w) -> {
+                    viewModel.updateCustomTitle(song, null, this);
+                    syncPlayerManagerTitle(song, null);
+                })
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+
+    /** Ver nota equivalente en SongsActivity. */
+    private void syncPlayerManagerTitle(Song song, String newTitle) {
+        PlayerManager pm = PlayerManager.getInstance();
+        Song playing = pm.getCurrentSongValue();
+        if (playing != null && playing.getId() == song.getId()) {
+            song.setCustomTitle(newTitle);
+            pm.updateCurrentSongMetadata(song);
+        }
     }
 
     private void showDeleteSongDialog(Song song) {
@@ -214,9 +233,9 @@ public class FavoritesActivity extends AppCompatActivity
     private void observeMiniPlayer() {
         PlayerManager pm = PlayerManager.getInstance();
         pm.getCurrentSong().observe(this, song -> {
-            if (song == null) { binding.miniPlayer.setVisibility(View.GONE); return; }
-            binding.miniPlayer.setVisibility(View.VISIBLE);
-            binding.tvMiniTitle.setText(song.getTitle());
+            if (song == null) { com.miku.player.utils.ViewAnimUtils.animateMiniPlayerVisibility(binding.miniPlayer, false); return; }
+            com.miku.player.utils.ViewAnimUtils.animateMiniPlayerVisibility(binding.miniPlayer, true);
+            binding.tvMiniTitle.setText(song.getDisplayTitle()); // FIX: mostraba el título original, no el personalizado
             binding.tvMiniArtist.setText(song.getArtist());
             com.bumptech.glide.Glide.with(this).clear(binding.ivMiniCover);
             binding.ivMiniCover.setImageResource(R.drawable.ic_default_album_art);
@@ -230,11 +249,13 @@ public class FavoritesActivity extends AppCompatActivity
         pm.getIsPlaying().observe(this, playing ->
                 binding.btnMiniPlayPause.setImageResource(
                         playing ? R.drawable.ic_pause : R.drawable.ic_play));
-        binding.miniPlayer.setOnClickListener(v ->
-                startActivity(new Intent(this, PlayerActivity.class)));
-        binding.btnMiniPlayPause.setOnClickListener(v -> pm.togglePlayPause());
-        binding.btnMiniNext.setOnClickListener(v -> pm.playNext());
-        binding.btnMiniPrevious.setOnClickListener(v -> pm.playPrevious());
+        binding.miniPlayer.setOnClickListener(v -> {
+            startActivity(new Intent(this, PlayerActivity.class));
+            ActivityTransitions.forward(this);
+        });
+        binding.btnMiniPlayPause.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.togglePlayPause(); });
+        binding.btnMiniNext.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playNext(); });
+        binding.btnMiniPrevious.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playPrevious(); });
         startMiniProgressUpdater();
     }
 
@@ -258,7 +279,11 @@ public class FavoritesActivity extends AppCompatActivity
     }
 
     @Override
-    public boolean onSupportNavigateUp() { finish(); return true; }
+    public boolean onSupportNavigateUp() {
+        finish();
+        ActivityTransitions.back(this);
+        return true;
+    }
 
     @Override
     protected void onDestroy() {

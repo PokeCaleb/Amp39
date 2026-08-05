@@ -7,8 +7,11 @@ import android.view.View;
 import android.widget.EditText;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -17,8 +20,11 @@ import com.miku.player.data.model.Playlist;
 import com.miku.player.data.model.PlaylistWithSongs;
 import com.miku.player.databinding.ActivityPlaylistsBinding;
 import com.miku.player.ui.player.PlayerActivity;
+import com.miku.player.utils.ActivityTransitions;
 import com.miku.player.utils.PlayerManager;
+import com.miku.player.utils.ViewAnimUtils;
 import java.util.ArrayList;
+import java.util.List;
 
 public class PlaylistsActivity extends AppCompatActivity
         implements PlaylistsAdapter.OnPlaylistClickListener {
@@ -27,6 +33,10 @@ public class PlaylistsActivity extends AppCompatActivity
     private PlaylistsAdapter adapter;
     private PlaylistsViewModel viewModel;
     private Playlist pendingCoverPlaylist;
+    // True mientras el usuario está arrastrando una playlist — bloquea que el
+    // observer de LiveData pise el reordenamiento en curso (mismo patrón que
+    // ya usa PlaylistDetailActivity para reordenar canciones dentro de una lista).
+    private boolean isDragging = false;
 
     private final ActivityResultLauncher<String> coverPickerLauncher =
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
@@ -61,11 +71,57 @@ public class PlaylistsActivity extends AppCompatActivity
         adapter = new PlaylistsAdapter(this);
         binding.rvPlaylists.setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(this, 2));
         binding.rvPlaylists.setAdapter(adapter);
+        setupDragAndDrop();
+    }
+
+    /**
+     * Arrastrar y soltar para reordenar playlists: mantener presionada una
+     * tarjeta la activa (isLongPressDragEnabled = true, sin necesidad de un
+     * modo de reordenar separado ni un ícono de agarre), y se puede soltar en
+     * cualquier posición de la grilla (arriba/abajo/izquierda/derecha).
+     */
+    private void setupDragAndDrop() {
+        ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP | ItemTouchHelper.DOWN
+                        | ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT, 0) {
+
+            @Override
+            public boolean isLongPressDragEnabled() { return true; }
+
+            @Override
+            public boolean onMove(@NonNull RecyclerView rv,
+                                  @NonNull RecyclerView.ViewHolder from,
+                                  @NonNull RecyclerView.ViewHolder to) {
+                int fromPos = from.getBindingAdapterPosition();
+                int toPos   = to.getBindingAdapterPosition();
+                if (fromPos == RecyclerView.NO_POSITION || toPos == RecyclerView.NO_POSITION) return false;
+                isDragging = true;
+                adapter.moveItem(fromPos, toPos);
+                return true;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {}
+
+            @Override
+            public void clearView(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh) {
+                super.clearView(rv, vh);
+                isDragging = false;
+                // Persistir el orden final
+                List<Long> orderedIds = new ArrayList<>();
+                for (PlaylistWithSongs pws : adapter.getItems()) orderedIds.add(pws.playlist.getId());
+                viewModel.reorderPlaylists(orderedIds);
+            }
+        };
+
+        new ItemTouchHelper(callback).attachToRecyclerView(binding.rvPlaylists);
     }
 
     private void observeViewModel() {
         viewModel.getPlaylists().observe(this, playlists -> {
-            adapter.submitList(playlists != null ? playlists : new ArrayList<>());
+            // No pisar la lista mientras el usuario está arrastrando una tarjeta
+            if (isDragging) return;
+            adapter.setItems(playlists != null ? playlists : new ArrayList<>());
             binding.rvPlaylists.setVisibility(View.VISIBLE);
         });
     }
@@ -73,9 +129,9 @@ public class PlaylistsActivity extends AppCompatActivity
     private void observeMiniPlayer() {
         PlayerManager pm = PlayerManager.getInstance();
         pm.getCurrentSong().observe(this, song -> {
-            if (song == null) { binding.miniPlayer.setVisibility(View.GONE); return; }
-            binding.miniPlayer.setVisibility(View.VISIBLE);
-            binding.tvMiniTitle.setText(song.getTitle());
+            if (song == null) { com.miku.player.utils.ViewAnimUtils.animateMiniPlayerVisibility(binding.miniPlayer, false); return; }
+            com.miku.player.utils.ViewAnimUtils.animateMiniPlayerVisibility(binding.miniPlayer, true);
+            binding.tvMiniTitle.setText(song.getDisplayTitle()); // FIX: mostraba el título original, no el personalizado
             binding.tvMiniArtist.setText(song.getArtist());
             com.bumptech.glide.Glide.with(this).clear(binding.ivMiniCover);
             binding.ivMiniCover.setImageResource(R.drawable.ic_default_album_art);
@@ -89,11 +145,14 @@ public class PlaylistsActivity extends AppCompatActivity
         pm.getIsPlaying().observe(this, playing ->
                 binding.btnMiniPlayPause.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play));
         binding.miniPlayer.setOnClickListener(v -> {
-            if (pm.getCurrentSongValue() != null) startActivity(new Intent(this, PlayerActivity.class));
+            if (pm.getCurrentSongValue() != null) {
+                startActivity(new Intent(this, PlayerActivity.class));
+                ActivityTransitions.forward(this);
+            }
         });
-        binding.btnMiniPlayPause.setOnClickListener(v -> pm.togglePlayPause());
-        binding.btnMiniNext.setOnClickListener(v -> pm.playNext());
-        binding.btnMiniPrevious.setOnClickListener(v -> pm.playPrevious());
+        binding.btnMiniPlayPause.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.togglePlayPause(); });
+        binding.btnMiniNext.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playNext(); });
+        binding.btnMiniPrevious.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playPrevious(); });
         startMiniProgressUpdater();
     }
 
@@ -140,6 +199,7 @@ public class PlaylistsActivity extends AppCompatActivity
         Intent intent = new Intent(this, PlaylistDetailActivity.class);
         intent.putExtra(PlaylistDetailActivity.EXTRA_PLAYLIST_ID, playlistWithSongs.playlist.getId());
         startActivity(intent);
+        ActivityTransitions.forward(this);
     }
 
     @Override
@@ -164,7 +224,11 @@ public class PlaylistsActivity extends AppCompatActivity
     }
 
     @Override
-    public boolean onSupportNavigateUp() { finish(); return true; }
+    public boolean onSupportNavigateUp() {
+        finish();
+        ActivityTransitions.back(this);
+        return true;
+    }
 
     @Override
     protected void onDestroy() {

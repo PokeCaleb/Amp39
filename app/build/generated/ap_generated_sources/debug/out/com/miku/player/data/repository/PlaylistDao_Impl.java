@@ -46,6 +46,8 @@ public final class PlaylistDao_Impl implements PlaylistDao {
 
   private final EntityDeletionOrUpdateAdapter<Playlist> __updateAdapterOfPlaylist;
 
+  private final SharedSQLiteStatement __preparedStmtOfUpdatePlaylistSortOrder;
+
   private final SharedSQLiteStatement __preparedStmtOfRemoveSongFromPlaylistById;
 
   private final SharedSQLiteStatement __preparedStmtOfUpdateSongPosition;
@@ -56,7 +58,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR ABORT INTO `playlists` (`id`,`name`,`coverPath`,`createdAt`) VALUES (nullif(?, 0),?,?,?)";
+        return "INSERT OR ABORT INTO `playlists` (`id`,`name`,`coverPath`,`createdAt`,`sortOrder`) VALUES (nullif(?, 0),?,?,?,?)";
       }
 
       @Override
@@ -73,6 +75,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
           statement.bindString(3, entity.getCoverPath());
         }
         statement.bindLong(4, entity.getCreatedAt());
+        statement.bindLong(5, entity.getSortOrder());
       }
     };
     this.__insertionAdapterOfPlaylistSong = new EntityInsertionAdapter<PlaylistSong>(__db) {
@@ -106,7 +109,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "UPDATE OR ABORT `playlists` SET `id` = ?,`name` = ?,`coverPath` = ?,`createdAt` = ? WHERE `id` = ?";
+        return "UPDATE OR ABORT `playlists` SET `id` = ?,`name` = ?,`coverPath` = ?,`createdAt` = ?,`sortOrder` = ? WHERE `id` = ?";
       }
 
       @Override
@@ -123,7 +126,16 @@ public final class PlaylistDao_Impl implements PlaylistDao {
           statement.bindString(3, entity.getCoverPath());
         }
         statement.bindLong(4, entity.getCreatedAt());
-        statement.bindLong(5, entity.getId());
+        statement.bindLong(5, entity.getSortOrder());
+        statement.bindLong(6, entity.getId());
+      }
+    };
+    this.__preparedStmtOfUpdatePlaylistSortOrder = new SharedSQLiteStatement(__db) {
+      @Override
+      @NonNull
+      public String createQuery() {
+        final String _query = "UPDATE playlists SET sortOrder = ? WHERE id = ?";
+        return _query;
       }
     };
     this.__preparedStmtOfRemoveSongFromPlaylistById = new SharedSQLiteStatement(__db) {
@@ -195,6 +207,27 @@ public final class PlaylistDao_Impl implements PlaylistDao {
   }
 
   @Override
+  public void updatePlaylistSortOrder(final long playlistId, final long sortOrder) {
+    __db.assertNotSuspendingTransaction();
+    final SupportSQLiteStatement _stmt = __preparedStmtOfUpdatePlaylistSortOrder.acquire();
+    int _argIndex = 1;
+    _stmt.bindLong(_argIndex, sortOrder);
+    _argIndex = 2;
+    _stmt.bindLong(_argIndex, playlistId);
+    try {
+      __db.beginTransaction();
+      try {
+        _stmt.executeUpdateDelete();
+        __db.setTransactionSuccessful();
+      } finally {
+        __db.endTransaction();
+      }
+    } finally {
+      __preparedStmtOfUpdatePlaylistSortOrder.release(_stmt);
+    }
+  }
+
+  @Override
   public void removeSongFromPlaylistById(final long playlistId, final long songId) {
     __db.assertNotSuspendingTransaction();
     final SupportSQLiteStatement _stmt = __preparedStmtOfRemoveSongFromPlaylistById.acquire();
@@ -240,7 +273,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
 
   @Override
   public LiveData<List<Playlist>> getAllPlaylists() {
-    final String _sql = "SELECT * FROM playlists ORDER BY createdAt DESC";
+    final String _sql = "SELECT * FROM playlists ORDER BY sortOrder DESC";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
     return __db.getInvalidationTracker().createLiveData(new String[] {"playlists"}, false, new Callable<List<Playlist>>() {
       @Override
@@ -252,6 +285,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
           final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
           final int _cursorIndexOfCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "coverPath");
           final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "createdAt");
+          final int _cursorIndexOfSortOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "sortOrder");
           final List<Playlist> _result = new ArrayList<Playlist>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final Playlist _item;
@@ -276,6 +310,9 @@ public final class PlaylistDao_Impl implements PlaylistDao {
             final long _tmpCreatedAt;
             _tmpCreatedAt = _cursor.getLong(_cursorIndexOfCreatedAt);
             _item.setCreatedAt(_tmpCreatedAt);
+            final long _tmpSortOrder;
+            _tmpSortOrder = _cursor.getLong(_cursorIndexOfSortOrder);
+            _item.setSortOrder(_tmpSortOrder);
             _result.add(_item);
           }
           return _result;
@@ -293,7 +330,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
 
   @Override
   public LiveData<List<PlaylistWithSongs>> getAllPlaylistsWithSongs() {
-    final String _sql = "SELECT * FROM playlists ORDER BY createdAt DESC";
+    final String _sql = "SELECT * FROM playlists ORDER BY sortOrder DESC";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
     return __db.getInvalidationTracker().createLiveData(new String[] {"playlist_songs", "songs",
         "playlists"}, true, new Callable<List<PlaylistWithSongs>>() {
@@ -308,7 +345,9 @@ public final class PlaylistDao_Impl implements PlaylistDao {
             final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
             final int _cursorIndexOfCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "coverPath");
             final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "createdAt");
+            final int _cursorIndexOfSortOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "sortOrder");
             final LongSparseArray<ArrayList<Song>> _collectionSongs = new LongSparseArray<ArrayList<Song>>();
+            final LongSparseArray<ArrayList<PlaylistSong>> _collectionPlaylistSongs = new LongSparseArray<ArrayList<PlaylistSong>>();
             while (_cursor.moveToNext()) {
               final Long _tmpKey;
               if (_cursor.isNull(_cursorIndexOfId)) {
@@ -321,14 +360,26 @@ public final class PlaylistDao_Impl implements PlaylistDao {
                   _collectionSongs.put(_tmpKey, new ArrayList<Song>());
                 }
               }
+              final Long _tmpKey_1;
+              if (_cursor.isNull(_cursorIndexOfId)) {
+                _tmpKey_1 = null;
+              } else {
+                _tmpKey_1 = _cursor.getLong(_cursorIndexOfId);
+              }
+              if (_tmpKey_1 != null) {
+                if (!_collectionPlaylistSongs.containsKey(_tmpKey_1)) {
+                  _collectionPlaylistSongs.put(_tmpKey_1, new ArrayList<PlaylistSong>());
+                }
+              }
             }
             _cursor.moveToPosition(-1);
             __fetchRelationshipsongsAscomMikuPlayerDataModelSong(_collectionSongs);
+            __fetchRelationshipplaylistSongsAscomMikuPlayerDataModelPlaylistSong(_collectionPlaylistSongs);
             final List<PlaylistWithSongs> _result = new ArrayList<PlaylistWithSongs>(_cursor.getCount());
             while (_cursor.moveToNext()) {
               final PlaylistWithSongs _item;
               final Playlist _tmpPlaylist;
-              if (!(_cursor.isNull(_cursorIndexOfId) && _cursor.isNull(_cursorIndexOfName) && _cursor.isNull(_cursorIndexOfCoverPath) && _cursor.isNull(_cursorIndexOfCreatedAt))) {
+              if (!(_cursor.isNull(_cursorIndexOfId) && _cursor.isNull(_cursorIndexOfName) && _cursor.isNull(_cursorIndexOfCoverPath) && _cursor.isNull(_cursorIndexOfCreatedAt) && _cursor.isNull(_cursorIndexOfSortOrder))) {
                 _tmpPlaylist = new Playlist();
                 final long _tmpId;
                 _tmpId = _cursor.getLong(_cursorIndexOfId);
@@ -350,24 +401,40 @@ public final class PlaylistDao_Impl implements PlaylistDao {
                 final long _tmpCreatedAt;
                 _tmpCreatedAt = _cursor.getLong(_cursorIndexOfCreatedAt);
                 _tmpPlaylist.setCreatedAt(_tmpCreatedAt);
+                final long _tmpSortOrder;
+                _tmpSortOrder = _cursor.getLong(_cursorIndexOfSortOrder);
+                _tmpPlaylist.setSortOrder(_tmpSortOrder);
               } else {
                 _tmpPlaylist = null;
               }
               final ArrayList<Song> _tmpSongsCollection;
-              final Long _tmpKey_1;
+              final Long _tmpKey_2;
               if (_cursor.isNull(_cursorIndexOfId)) {
-                _tmpKey_1 = null;
+                _tmpKey_2 = null;
               } else {
-                _tmpKey_1 = _cursor.getLong(_cursorIndexOfId);
+                _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
               }
-              if (_tmpKey_1 != null) {
-                _tmpSongsCollection = _collectionSongs.get(_tmpKey_1);
+              if (_tmpKey_2 != null) {
+                _tmpSongsCollection = _collectionSongs.get(_tmpKey_2);
               } else {
                 _tmpSongsCollection = new ArrayList<Song>();
+              }
+              final ArrayList<PlaylistSong> _tmpPlaylistSongsCollection;
+              final Long _tmpKey_3;
+              if (_cursor.isNull(_cursorIndexOfId)) {
+                _tmpKey_3 = null;
+              } else {
+                _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
+              }
+              if (_tmpKey_3 != null) {
+                _tmpPlaylistSongsCollection = _collectionPlaylistSongs.get(_tmpKey_3);
+              } else {
+                _tmpPlaylistSongsCollection = new ArrayList<PlaylistSong>();
               }
               _item = new PlaylistWithSongs();
               _item.playlist = _tmpPlaylist;
               _item.songs = _tmpSongsCollection;
+              _item.playlistSongs = _tmpPlaylistSongsCollection;
               _result.add(_item);
             }
             __db.setTransactionSuccessful();
@@ -406,7 +473,9 @@ public final class PlaylistDao_Impl implements PlaylistDao {
             final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
             final int _cursorIndexOfCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "coverPath");
             final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "createdAt");
+            final int _cursorIndexOfSortOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "sortOrder");
             final LongSparseArray<ArrayList<Song>> _collectionSongs = new LongSparseArray<ArrayList<Song>>();
+            final LongSparseArray<ArrayList<PlaylistSong>> _collectionPlaylistSongs = new LongSparseArray<ArrayList<PlaylistSong>>();
             while (_cursor.moveToNext()) {
               final Long _tmpKey;
               if (_cursor.isNull(_cursorIndexOfId)) {
@@ -419,13 +488,25 @@ public final class PlaylistDao_Impl implements PlaylistDao {
                   _collectionSongs.put(_tmpKey, new ArrayList<Song>());
                 }
               }
+              final Long _tmpKey_1;
+              if (_cursor.isNull(_cursorIndexOfId)) {
+                _tmpKey_1 = null;
+              } else {
+                _tmpKey_1 = _cursor.getLong(_cursorIndexOfId);
+              }
+              if (_tmpKey_1 != null) {
+                if (!_collectionPlaylistSongs.containsKey(_tmpKey_1)) {
+                  _collectionPlaylistSongs.put(_tmpKey_1, new ArrayList<PlaylistSong>());
+                }
+              }
             }
             _cursor.moveToPosition(-1);
             __fetchRelationshipsongsAscomMikuPlayerDataModelSong(_collectionSongs);
+            __fetchRelationshipplaylistSongsAscomMikuPlayerDataModelPlaylistSong(_collectionPlaylistSongs);
             final PlaylistWithSongs _result;
             if (_cursor.moveToFirst()) {
               final Playlist _tmpPlaylist;
-              if (!(_cursor.isNull(_cursorIndexOfId) && _cursor.isNull(_cursorIndexOfName) && _cursor.isNull(_cursorIndexOfCoverPath) && _cursor.isNull(_cursorIndexOfCreatedAt))) {
+              if (!(_cursor.isNull(_cursorIndexOfId) && _cursor.isNull(_cursorIndexOfName) && _cursor.isNull(_cursorIndexOfCoverPath) && _cursor.isNull(_cursorIndexOfCreatedAt) && _cursor.isNull(_cursorIndexOfSortOrder))) {
                 _tmpPlaylist = new Playlist();
                 final long _tmpId;
                 _tmpId = _cursor.getLong(_cursorIndexOfId);
@@ -447,24 +528,40 @@ public final class PlaylistDao_Impl implements PlaylistDao {
                 final long _tmpCreatedAt;
                 _tmpCreatedAt = _cursor.getLong(_cursorIndexOfCreatedAt);
                 _tmpPlaylist.setCreatedAt(_tmpCreatedAt);
+                final long _tmpSortOrder;
+                _tmpSortOrder = _cursor.getLong(_cursorIndexOfSortOrder);
+                _tmpPlaylist.setSortOrder(_tmpSortOrder);
               } else {
                 _tmpPlaylist = null;
               }
               final ArrayList<Song> _tmpSongsCollection;
-              final Long _tmpKey_1;
+              final Long _tmpKey_2;
               if (_cursor.isNull(_cursorIndexOfId)) {
-                _tmpKey_1 = null;
+                _tmpKey_2 = null;
               } else {
-                _tmpKey_1 = _cursor.getLong(_cursorIndexOfId);
+                _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
               }
-              if (_tmpKey_1 != null) {
-                _tmpSongsCollection = _collectionSongs.get(_tmpKey_1);
+              if (_tmpKey_2 != null) {
+                _tmpSongsCollection = _collectionSongs.get(_tmpKey_2);
               } else {
                 _tmpSongsCollection = new ArrayList<Song>();
+              }
+              final ArrayList<PlaylistSong> _tmpPlaylistSongsCollection;
+              final Long _tmpKey_3;
+              if (_cursor.isNull(_cursorIndexOfId)) {
+                _tmpKey_3 = null;
+              } else {
+                _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
+              }
+              if (_tmpKey_3 != null) {
+                _tmpPlaylistSongsCollection = _collectionPlaylistSongs.get(_tmpKey_3);
+              } else {
+                _tmpPlaylistSongsCollection = new ArrayList<PlaylistSong>();
               }
               _result = new PlaylistWithSongs();
               _result.playlist = _tmpPlaylist;
               _result.songs = _tmpSongsCollection;
+              _result.playlistSongs = _tmpPlaylistSongsCollection;
             } else {
               _result = null;
             }
@@ -581,6 +678,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
           final int _cursorIndexOfPath = CursorUtil.getColumnIndexOrThrow(_cursor, "path");
           final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
           final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
+          final int _cursorIndexOfDateModified = CursorUtil.getColumnIndexOrThrow(_cursor, "dateModified");
           final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
           final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
           final List<Song> _result = new ArrayList<Song>(_cursor.getCount());
@@ -638,6 +736,9 @@ public final class PlaylistDao_Impl implements PlaylistDao {
             final long _tmpDateAdded;
             _tmpDateAdded = _cursor.getLong(_cursorIndexOfDateAdded);
             _item.setDateAdded(_tmpDateAdded);
+            final long _tmpDateModified;
+            _tmpDateModified = _cursor.getLong(_cursorIndexOfDateModified);
+            _item.setDateModified(_tmpDateModified);
             final boolean _tmpIsFavorite;
             final int _tmp;
             _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
@@ -679,6 +780,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
       final int _cursorIndexOfPath = CursorUtil.getColumnIndexOrThrow(_cursor, "path");
       final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
       final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
+      final int _cursorIndexOfDateModified = CursorUtil.getColumnIndexOrThrow(_cursor, "dateModified");
       final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
       final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
       final List<Song> _result = new ArrayList<Song>(_cursor.getCount());
@@ -736,6 +838,9 @@ public final class PlaylistDao_Impl implements PlaylistDao {
         final long _tmpDateAdded;
         _tmpDateAdded = _cursor.getLong(_cursorIndexOfDateAdded);
         _item.setDateAdded(_tmpDateAdded);
+        final long _tmpDateModified;
+        _tmpDateModified = _cursor.getLong(_cursorIndexOfDateModified);
+        _item.setDateModified(_tmpDateModified);
         final boolean _tmpIsFavorite;
         final int _tmp;
         _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
@@ -771,7 +876,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
       return;
     }
     final StringBuilder _stringBuilder = StringUtil.newStringBuilder();
-    _stringBuilder.append("SELECT `songs`.`id` AS `id`,`songs`.`title` AS `title`,`songs`.`customTitle` AS `customTitle`,`songs`.`artist` AS `artist`,`songs`.`album` AS `album`,`songs`.`duration` AS `duration`,`songs`.`path` AS `path`,`songs`.`customCoverPath` AS `customCoverPath`,`songs`.`dateAdded` AS `dateAdded`,`songs`.`isFavorite` AS `isFavorite`,`songs`.`favoriteOrder` AS `favoriteOrder`,_junction.`playlistId` FROM `playlist_songs` AS _junction INNER JOIN `songs` ON (_junction.`songId` = `songs`.`id`) WHERE _junction.`playlistId` IN (");
+    _stringBuilder.append("SELECT `songs`.`id` AS `id`,`songs`.`title` AS `title`,`songs`.`customTitle` AS `customTitle`,`songs`.`artist` AS `artist`,`songs`.`album` AS `album`,`songs`.`duration` AS `duration`,`songs`.`path` AS `path`,`songs`.`customCoverPath` AS `customCoverPath`,`songs`.`dateAdded` AS `dateAdded`,`songs`.`dateModified` AS `dateModified`,`songs`.`isFavorite` AS `isFavorite`,`songs`.`favoriteOrder` AS `favoriteOrder`,_junction.`playlistId` FROM `playlist_songs` AS _junction INNER JOIN `songs` ON (_junction.`songId` = `songs`.`id`) WHERE _junction.`playlistId` IN (");
     final int _inputSize = _map.size();
     StringUtil.appendPlaceholders(_stringBuilder, _inputSize);
     _stringBuilder.append(")");
@@ -787,7 +892,7 @@ public final class PlaylistDao_Impl implements PlaylistDao {
     final Cursor _cursor = DBUtil.query(__db, _stmt, false, null);
     try {
       // _junction.playlistId;
-      final int _itemKeyIndex = 11;
+      final int _itemKeyIndex = 12;
       if (_itemKeyIndex == -1) {
         return;
       }
@@ -800,8 +905,9 @@ public final class PlaylistDao_Impl implements PlaylistDao {
       final int _cursorIndexOfPath = 6;
       final int _cursorIndexOfCustomCoverPath = 7;
       final int _cursorIndexOfDateAdded = 8;
-      final int _cursorIndexOfIsFavorite = 9;
-      final int _cursorIndexOfFavoriteOrder = 10;
+      final int _cursorIndexOfDateModified = 9;
+      final int _cursorIndexOfIsFavorite = 10;
+      final int _cursorIndexOfFavoriteOrder = 11;
       while (_cursor.moveToNext()) {
         final long _tmpKey;
         _tmpKey = _cursor.getLong(_itemKeyIndex);
@@ -860,6 +966,9 @@ public final class PlaylistDao_Impl implements PlaylistDao {
           final long _tmpDateAdded;
           _tmpDateAdded = _cursor.getLong(_cursorIndexOfDateAdded);
           _item_1.setDateAdded(_tmpDateAdded);
+          final long _tmpDateModified;
+          _tmpDateModified = _cursor.getLong(_cursorIndexOfDateModified);
+          _item_1.setDateModified(_tmpDateModified);
           final boolean _tmpIsFavorite;
           final int _tmp;
           _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
@@ -868,6 +977,59 @@ public final class PlaylistDao_Impl implements PlaylistDao {
           final long _tmpFavoriteOrder;
           _tmpFavoriteOrder = _cursor.getLong(_cursorIndexOfFavoriteOrder);
           _item_1.setFavoriteOrder(_tmpFavoriteOrder);
+          _tmpRelation.add(_item_1);
+        }
+      }
+    } finally {
+      _cursor.close();
+    }
+  }
+
+  private void __fetchRelationshipplaylistSongsAscomMikuPlayerDataModelPlaylistSong(
+      @NonNull final LongSparseArray<ArrayList<PlaylistSong>> _map) {
+    if (_map.isEmpty()) {
+      return;
+    }
+    if (_map.size() > RoomDatabase.MAX_BIND_PARAMETER_CNT) {
+      RelationUtil.recursiveFetchLongSparseArray(_map, true, (map) -> {
+        __fetchRelationshipplaylistSongsAscomMikuPlayerDataModelPlaylistSong(map);
+        return Unit.INSTANCE;
+      });
+      return;
+    }
+    final StringBuilder _stringBuilder = StringUtil.newStringBuilder();
+    _stringBuilder.append("SELECT `playlistId`,`songId`,`position` FROM `playlist_songs` WHERE `playlistId` IN (");
+    final int _inputSize = _map.size();
+    StringUtil.appendPlaceholders(_stringBuilder, _inputSize);
+    _stringBuilder.append(")");
+    final String _sql = _stringBuilder.toString();
+    final int _argCount = 0 + _inputSize;
+    final RoomSQLiteQuery _stmt = RoomSQLiteQuery.acquire(_sql, _argCount);
+    int _argIndex = 1;
+    for (int i = 0; i < _map.size(); i++) {
+      final long _item = _map.keyAt(i);
+      _stmt.bindLong(_argIndex, _item);
+      _argIndex++;
+    }
+    final Cursor _cursor = DBUtil.query(__db, _stmt, false, null);
+    try {
+      final int _itemKeyIndex = CursorUtil.getColumnIndex(_cursor, "playlistId");
+      if (_itemKeyIndex == -1) {
+        return;
+      }
+      final int _cursorIndexOfPlaylistId = 0;
+      final int _cursorIndexOfSongId = 1;
+      final int _cursorIndexOfPosition = 2;
+      while (_cursor.moveToNext()) {
+        final long _tmpKey;
+        _tmpKey = _cursor.getLong(_itemKeyIndex);
+        final ArrayList<PlaylistSong> _tmpRelation = _map.get(_tmpKey);
+        if (_tmpRelation != null) {
+          final PlaylistSong _item_1;
+          _item_1 = new PlaylistSong();
+          _item_1.playlistId = _cursor.getLong(_cursorIndexOfPlaylistId);
+          _item_1.songId = _cursor.getLong(_cursorIndexOfSongId);
+          _item_1.position = _cursor.getInt(_cursorIndexOfPosition);
           _tmpRelation.add(_item_1);
         }
       }

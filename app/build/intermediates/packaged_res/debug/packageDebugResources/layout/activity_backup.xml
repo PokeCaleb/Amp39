@@ -45,7 +45,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:padding="16dp"
-                    android:text="El respaldo guarda tus listas de reproducción y las carátulas personalizadas que hayas asignado dentro de la app. Los cambios de título, favoritos y demás se almacenan directamente en los archivos de audio, por lo que no se pierden aunque desinstales la app."
+                    android:text="El respaldo guarda tus listas de reproducción (con su orden y canciones), tus favoritos, los nombres personalizados que hayas puesto, y las carátulas que hayas cambiado — tanto de canciones como de listas. Todo esto vive únicamente en la app, así que si desinstalas sin respaldar, se pierde.\n\nAparte, cuando cambias el nombre de una canción, también se intenta guardar ese cambio directamente en el archivo de audio — eso sí sobrevive aunque desinstales, pero solo el nombre."
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                     android:textColor="@color/miku_on_teal_container" />
             </com.google.android.material.card.MaterialCardView>

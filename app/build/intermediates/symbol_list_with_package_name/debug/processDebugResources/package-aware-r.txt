@@ -28,6 +28,8 @@ anim design_bottom_sheet_slide_out
 anim design_snackbar_in
 anim design_snackbar_out
 anim fragment_fast_out_extra_slow_in
+anim item_fall_down
+anim layout_animation_fall_down
 anim linear_indeterminate_line1_head_interpolator
 anim linear_indeterminate_line1_tail_interpolator
 anim linear_indeterminate_line2_head_interpolator
@@ -43,6 +45,10 @@ anim m3_side_sheet_exit_to_right
 anim mtrl_bottom_sheet_slide_in
 anim mtrl_bottom_sheet_slide_out
 anim mtrl_card_lowers_interpolator
+anim slide_in_left_fade
+anim slide_in_right
+anim slide_out_left
+anim slide_out_right_fade
 animator design_appbar_state_list_animator
 animator design_fab_hide_motion_spec
 animator design_fab_show_motion_spec
@@ -3541,8 +3547,8 @@ id checkbox
 id checked
 id chipGroupFilter
 id chipSortAZ
-id chipSortArtist
-id chipSortRecent
+id chipSortAdded
+id chipSortModified
 id chronometer
 id circle_center
 id clear_text
@@ -4018,6 +4024,7 @@ id uniform
 id unlabeled
 id up
 id useLogo
+id vDynamicBackground
 id vertical_only
 id video_decoder_gl_surface_view
 id view_offset_helper

@@ -104,6 +104,18 @@ public class MusicRepository {
                     newSong.setFavorite(existing.isFavorite());
                     newSong.setFavoriteOrder(existing.getFavoriteOrder());
                     newSong.setCustomTitle(existing.getCustomTitle());
+                    // FIX "Recientes": preservar la fecha de agregado ORIGINAL. Antes se
+                    // sobreescribía con newSong.getDateAdded() (la fecha de modificación
+                    // ACTUAL del archivo en este escaneo), así que cualquier cosa que
+                    // reescribiera el archivo — como cambiar la carátula o el nombre,
+                    // que reescriben el archivo completo vía TagWriter y por lo tanto
+                    // actualizan su mtime — hacía que la canción saltara al principio de
+                    // "Recientes" en el siguiente escaneo, aunque no se hubiera "agregado"
+                    // de nuevo, solo editado.
+                    newSong.setDateAdded(existing.getDateAdded());
+                    // dateModified SÍ se actualiza siempre con el valor fresco de este
+                    // escaneo (newSong ya lo trae bien poblado) — es justamente lo que
+                    // se busca: reflejar la fecha real de modificación del archivo.
                     String existingCover = existing.getCustomCoverPath();
                     if (existingCover != null && !existingCover.isEmpty()
                             && new File(existingCover).exists()) {
@@ -205,15 +217,37 @@ public class MusicRepository {
             Bitmap bmp = BitmapFactory.decodeByteArray(artBytes, 0, artBytes.length);
             if (bmp == null) return null;
 
-            // Scale down if larger than 512×512 to avoid memory issues in notifications
-            if (bmp.getWidth() > 512 || bmp.getHeight() > 512) {
-                Bitmap scaled = Bitmap.createScaledBitmap(bmp, 512, 512, true);
+            // Scale down if larger than 1024px en su lado más largo, para evitar
+            // problemas de memoria — pero MANTENIENDO el aspect ratio original
+            // del bitmap. Antes esto forzaba siempre 512×512 (createScaledBitmap
+            // con ancho Y alto fijos), lo que aplastaba cualquier carátula no
+            // cuadrada (ej. miniaturas 16:9 de YouTube/Seal) a un cuadrado
+            // perfecto ANTES de que el reproductor pudiera mostrar su forma
+            // real — por eso el tamaño dinámico de la carátula en PlayerActivity
+            // nunca se notaba: el archivo cacheado ya llegaba cuadrado sin
+            // importar la fuente original.
+            //
+            // Límite subido de 512 a 1024: en el reproductor grande la carátula
+            // se estira a casi todo el ancho de pantalla, así que 512px se veía
+            // ligeramente borroso por upscaling en pantallas de densidad alta.
+            // 1024px es nítido incluso en pantallas grandes y sigue siendo
+            // seguro en memoria (1024×1024 ARGB_8888 ≈ 4MB por bitmap, liberado
+            // apenas se comprime a disco). Las notificaciones no se ven
+            // afectadas: Android las reescala internamente a su propio tamaño.
+            int maxDim = Math.max(bmp.getWidth(), bmp.getHeight());
+            if (maxDim > 1024) {
+                float scale = 1024f / maxDim;
+                int newWidth = Math.round(bmp.getWidth() * scale);
+                int newHeight = Math.round(bmp.getHeight() * scale);
+                Bitmap scaled = Bitmap.createScaledBitmap(bmp, newWidth, newHeight, true);
                 bmp.recycle();
                 bmp = scaled;
             }
 
             try (FileOutputStream fos = new FileOutputStream(outFile)) {
-                bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos);
+                // Calidad subida de 90 a 95: menos artefactos de compresión JPEG,
+                // notorio sobre todo en degradados suaves de las carátulas.
+                bmp.compress(Bitmap.CompressFormat.JPEG, 95, fos);
             }
             bmp.recycle();
             return outFile.getAbsolutePath();
@@ -280,6 +314,9 @@ public class MusicRepository {
                     long dateAdded = lastModified > 0 ? lastModified : System.currentTimeMillis();
                     Song s = new Song(stableId, title, "Artista desconocido",
                             "Álbum desconocido", 0L, fileUri.toString(), dateAdded);
+                    // dateModified SIEMPRE refleja la fecha real actual del archivo —
+                    // a diferencia de dateAdded, esta se actualiza en cada escaneo.
+                    s.setDateModified(dateAdded);
                     songs.add(s);
                 }
             }
@@ -322,7 +359,7 @@ public class MusicRepository {
                 MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE,
                 MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.ALBUM,
                 MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.DATA,
-                MediaStore.Audio.Media.DATE_ADDED
+                MediaStore.Audio.Media.DATE_ADDED, MediaStore.Audio.Media.DATE_MODIFIED
         };
         String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0"
                 + " AND " + MediaStore.Audio.Media.DURATION + " >= 30000";
@@ -337,14 +374,20 @@ public class MusicRepository {
             int durCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
             int dataCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
             int dateCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED);
+            int dateModCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED);
 
             while (cursor.moveToNext()) {
                 String artist = cursor.getString(artistCol);
                 if ("<unknown>".equals(artist)) artist = "Artista desconocido";
-                songs.add(new Song(cursor.getLong(idCol), cursor.getString(titleCol),
+                Song s = new Song(cursor.getLong(idCol), cursor.getString(titleCol),
                         artist, cursor.getString(albumCol),
                         cursor.getLong(durCol), cursor.getString(dataCol),
-                        cursor.getLong(dateCol)));
+                        cursor.getLong(dateCol));
+                // dateModified viene de la columna dedicada de MediaStore — la propia
+                // documentación de Android dice que esta es "for internal use by the
+                // media scanner", exactamente lo que necesitamos aquí.
+                s.setDateModified(cursor.getLong(dateModCol));
+                songs.add(s);
             }
         }
         return songs;
@@ -369,17 +412,32 @@ public class MusicRepository {
 
     /**
      * Sobreescritura sin callback — mantiene compatibilidad con código que no necesita
-     * saber cuándo terminó la copia.
+     * saber cuándo terminó la copia. Por defecto SÍ intenta escribir al archivo
+     * original (comportamiento histórico), para no romper otros usos existentes.
      */
     public void updateSongCover(Song song, String coverUriStr) {
-        updateSongCover(song, coverUriStr, null);
+        updateSongCover(song, coverUriStr, true, null);
+    }
+
+    /** Sobrecarga anterior — se mantiene por compatibilidad, intenta escribir al archivo. */
+    public void updateSongCover(Song song, String coverUriStr, CoverUpdateCallback callback) {
+        updateSongCover(song, coverUriStr, true, callback);
     }
 
     /**
      * Copies the image at coverUri into filesDir/covers/ and stores the local
      * path in the DB. Invoca el callback en el hilo principal cuando la copia termina.
+     *
+     * @param writeToFile si es true, además intenta escribir la carátula en el
+     *                    archivo de audio original (comportamiento que antes era
+     *                    siempre automático). Si es false, el cambio queda SOLO
+     *                    dentro de la app — el archivo original nunca se toca.
+     *                    Para .opus, el llamador debe pasar false directamente
+     *                    (la librería de tags no soporta ese formato de todas
+     *                    formas, así que intentarlo es trabajo desperdiciado).
      */
-    public void updateSongCover(Song song, String coverUriStr, CoverUpdateCallback callback) {
+    public void updateSongCover(Song song, String coverUriStr, boolean writeToFile,
+                                CoverUpdateCallback callback) {
         final long songId = song.getId();
         executor.execute(() -> {
             String localPath = copyImageToCoversDir(songId, coverUriStr);
@@ -394,7 +452,7 @@ public class MusicRepository {
                 db.songDao().update(song);
             }
 
-            if (localPath != null) {
+            if (localPath != null && writeToFile) {
                 com.miku.player.utils.TagWriter.writeCover(appContext, song.getPath(), localPath,
                     new com.miku.player.utils.TagWriter.Result() {
                         public void onSuccess() {
@@ -402,6 +460,13 @@ public class MusicRepository {
                         }
                         public void onError(String msg) {
                             android.util.Log.w("MikuRepo", "Could not write cover to tags: " + msg);
+                            // FIX: antes esto era completamente silencioso — la carátula
+                            // quedaba guardada solo en la app sin que el usuario supiera
+                            // que la escritura al archivo original había fallado.
+                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                                android.widget.Toast.makeText(appContext,
+                                    "La carátula se guardó en la app, pero no se pudo escribir en el archivo original",
+                                    android.widget.Toast.LENGTH_LONG).show());
                         }
                     });
             }
@@ -600,8 +665,58 @@ public class MusicRepository {
         });
     }
 
+    /**
+     * Persiste el orden manual (arrastrar y soltar) de las listas de reproducción.
+     * Igual criterio que reorderPlaylistSongs, pero a nivel de sortOrder de cada
+     * playlist. Se asignan valores DESCENDENTES (el primero de la lista recibe el
+     * valor más alto) porque la query ordena por sortOrder DESC — así una playlist
+     * recién creada (sortOrder = createdAt, un timestamp actual) sigue apareciendo
+     * primero hasta que el usuario la reordene manualmente.
+     */
+    public void reorderPlaylists(List<Long> orderedPlaylistIds) {
+        executor.execute(() -> {
+            int n = orderedPlaylistIds.size();
+            for (int i = 0; i < n; i++) {
+                db.playlistDao().updatePlaylistSortOrder(orderedPlaylistIds.get(i), n - i);
+            }
+        });
+    }
+
     public void updatePlaylistCover(Playlist playlist, String coverPath) {
-        executor.execute(() -> { playlist.setCoverPath(coverPath); db.playlistDao().updatePlaylist(playlist); });
+        executor.execute(() -> {
+            // FIX: antes se guardaba la URI content:// cruda del selector de imágenes
+            // directamente en la DB. Esa URI no sobrevive una reinstalación (ni estaba
+            // incluida en el respaldo, porque el respaldo solo empaqueta archivos
+            // reales dentro de filesDir/covers/). Ahora se copia localmente, igual que
+            // ya se hace con las portadas de canciones — así queda incluida en el
+            // respaldo automáticamente, sin tocar BackupManager.
+            String localPath = copyPlaylistCoverToCoversDir(playlist.getId(), coverPath);
+            playlist.setCoverPath(localPath != null ? localPath : coverPath);
+            db.playlistDao().updatePlaylist(playlist);
+        });
+    }
+
+    /**
+     * Copies any URI-addressable image into filesDir/covers/playlist_cover_<id>.jpg.
+     * Mirror of copyImageToCoversDir() but for playlist covers. Returns the absolute
+     * path of the saved file, or null on failure (caller falls back to the raw URI).
+     */
+    private String copyPlaylistCoverToCoversDir(long playlistId, String uriStr) {
+        try {
+            android.net.Uri uri = android.net.Uri.parse(uriStr);
+            File outFile = new File(coversDir, "playlist_cover_" + playlistId + ".jpg");
+            try (java.io.InputStream in = resolver.openInputStream(uri);
+                 java.io.FileOutputStream out = new java.io.FileOutputStream(outFile)) {
+                if (in == null) return null;
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+            }
+            return outFile.getAbsolutePath();
+        } catch (Exception e) {
+            android.util.Log.e("MikuRepo", "Failed to copy playlist cover image", e);
+            return null;
+        }
     }
 
     /**

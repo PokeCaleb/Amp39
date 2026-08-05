@@ -15,7 +15,9 @@ import com.miku.player.ui.favorites.FavoritesActivity;
 import com.miku.player.ui.player.PlayerActivity;
 import com.miku.player.ui.playlists.PlaylistsActivity;
 import com.miku.player.ui.songs.SongsActivity;
+import com.miku.player.utils.ActivityTransitions;
 import com.miku.player.utils.PlayerManager;
+import com.miku.player.utils.ViewAnimUtils;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -39,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
                         .apply();
                 updateFolderLabel();
                 startActivity(new Intent(this, SongsActivity.class));
+                ActivityTransitions.forward(this);
             });
 
     @Override
@@ -63,34 +66,50 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupButtons() {
-        binding.cardAllSongs.setOnClickListener(v ->
-                startActivity(new Intent(this, SongsActivity.class)));
-        binding.cardPlaylists.setOnClickListener(v ->
-                startActivity(new Intent(this, PlaylistsActivity.class)));
-        binding.cardFavorites.setOnClickListener(v ->
-                startActivity(new Intent(this, FavoritesActivity.class)));
+        binding.cardAllSongs.setOnClickListener(v -> {
+            startActivity(new Intent(this, SongsActivity.class));
+            ActivityTransitions.forward(this);
+        });
+        binding.cardPlaylists.setOnClickListener(v -> {
+            startActivity(new Intent(this, PlaylistsActivity.class));
+            ActivityTransitions.forward(this);
+        });
+        binding.cardFavorites.setOnClickListener(v -> {
+            startActivity(new Intent(this, FavoritesActivity.class));
+            ActivityTransitions.forward(this);
+        });
         binding.cardSelectFolder.setOnClickListener(v -> folderPicker.launch(null));
-        binding.cardSettings.setOnClickListener(v ->
-                startActivity(new Intent(this, com.miku.player.ui.settings.SettingsActivity.class)));
+        binding.cardSettings.setOnClickListener(v -> {
+            startActivity(new Intent(this, com.miku.player.ui.settings.SettingsActivity.class));
+            ActivityTransitions.forward(this);
+        });
 
         binding.miniPlayer.setOnClickListener(v -> {
-            if (PlayerManager.getInstance().getCurrentSongValue() != null)
+            if (PlayerManager.getInstance().getCurrentSongValue() != null) {
                 startActivity(new Intent(this, PlayerActivity.class));
+                ActivityTransitions.forward(this);
+            }
         });
-        binding.btnMiniPlayPause.setOnClickListener(v ->
-                PlayerManager.getInstance().togglePlayPause());
-        binding.btnMiniNext.setOnClickListener(v ->
-                PlayerManager.getInstance().playNext());
-        binding.btnMiniPrevious.setOnClickListener(v ->
-                PlayerManager.getInstance().playPrevious());
+        binding.btnMiniPlayPause.setOnClickListener(v -> {
+            ViewAnimUtils.pulse(v);
+            PlayerManager.getInstance().togglePlayPause();
+        });
+        binding.btnMiniNext.setOnClickListener(v -> {
+            ViewAnimUtils.pulse(v);
+            PlayerManager.getInstance().playNext();
+        });
+        binding.btnMiniPrevious.setOnClickListener(v -> {
+            ViewAnimUtils.pulse(v);
+            PlayerManager.getInstance().playPrevious();
+        });
     }
 
     private void observeMiniPlayer() {
         PlayerManager pm = PlayerManager.getInstance();
         pm.getCurrentSong().observe(this, song -> {
-            if (song == null) { binding.miniPlayer.setVisibility(View.GONE); return; }
-            binding.miniPlayer.setVisibility(View.VISIBLE);
-            binding.tvMiniTitle.setText(song.getTitle());
+            if (song == null) { com.miku.player.utils.ViewAnimUtils.animateMiniPlayerVisibility(binding.miniPlayer, false); return; }
+            com.miku.player.utils.ViewAnimUtils.animateMiniPlayerVisibility(binding.miniPlayer, true);
+            binding.tvMiniTitle.setText(song.getDisplayTitle()); // FIX: mostraba el título original, no el personalizado
             binding.tvMiniArtist.setText(song.getArtist());
             com.bumptech.glide.Glide.with(this).clear(binding.ivMiniCover);
             binding.ivMiniCover.setImageResource(R.drawable.ic_default_album_art);

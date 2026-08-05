@@ -56,7 +56,7 @@ public final class SongDao_Impl implements SongDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR REPLACE INTO `songs` (`id`,`title`,`customTitle`,`artist`,`album`,`duration`,`path`,`customCoverPath`,`dateAdded`,`isFavorite`,`favoriteOrder`) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+        return "INSERT OR REPLACE INTO `songs` (`id`,`title`,`customTitle`,`artist`,`album`,`duration`,`path`,`customCoverPath`,`dateAdded`,`dateModified`,`isFavorite`,`favoriteOrder`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -94,9 +94,10 @@ public final class SongDao_Impl implements SongDao {
           statement.bindString(8, entity.getCustomCoverPath());
         }
         statement.bindLong(9, entity.getDateAdded());
+        statement.bindLong(10, entity.getDateModified());
         final int _tmp = entity.isFavorite() ? 1 : 0;
-        statement.bindLong(10, _tmp);
-        statement.bindLong(11, entity.getFavoriteOrder());
+        statement.bindLong(11, _tmp);
+        statement.bindLong(12, entity.getFavoriteOrder());
       }
     };
     this.__deletionAdapterOfSong = new EntityDeletionOrUpdateAdapter<Song>(__db) {
@@ -115,7 +116,7 @@ public final class SongDao_Impl implements SongDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "UPDATE OR ABORT `songs` SET `id` = ?,`title` = ?,`customTitle` = ?,`artist` = ?,`album` = ?,`duration` = ?,`path` = ?,`customCoverPath` = ?,`dateAdded` = ?,`isFavorite` = ?,`favoriteOrder` = ? WHERE `id` = ?";
+        return "UPDATE OR ABORT `songs` SET `id` = ?,`title` = ?,`customTitle` = ?,`artist` = ?,`album` = ?,`duration` = ?,`path` = ?,`customCoverPath` = ?,`dateAdded` = ?,`dateModified` = ?,`isFavorite` = ?,`favoriteOrder` = ? WHERE `id` = ?";
       }
 
       @Override
@@ -153,10 +154,11 @@ public final class SongDao_Impl implements SongDao {
           statement.bindString(8, entity.getCustomCoverPath());
         }
         statement.bindLong(9, entity.getDateAdded());
+        statement.bindLong(10, entity.getDateModified());
         final int _tmp = entity.isFavorite() ? 1 : 0;
-        statement.bindLong(10, _tmp);
-        statement.bindLong(11, entity.getFavoriteOrder());
-        statement.bindLong(12, entity.getId());
+        statement.bindLong(11, _tmp);
+        statement.bindLong(12, entity.getFavoriteOrder());
+        statement.bindLong(13, entity.getId());
       }
     };
     this.__preparedStmtOfSetFavoriteWithOrder = new SharedSQLiteStatement(__db) {
@@ -406,6 +408,7 @@ public final class SongDao_Impl implements SongDao {
           final int _cursorIndexOfPath = CursorUtil.getColumnIndexOrThrow(_cursor, "path");
           final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
           final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
+          final int _cursorIndexOfDateModified = CursorUtil.getColumnIndexOrThrow(_cursor, "dateModified");
           final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
           final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
           final List<Song> _result = new ArrayList<Song>(_cursor.getCount());
@@ -463,6 +466,9 @@ public final class SongDao_Impl implements SongDao {
             final long _tmpDateAdded;
             _tmpDateAdded = _cursor.getLong(_cursorIndexOfDateAdded);
             _item.setDateAdded(_tmpDateAdded);
+            final long _tmpDateModified;
+            _tmpDateModified = _cursor.getLong(_cursorIndexOfDateModified);
+            _item.setDateModified(_tmpDateModified);
             final boolean _tmpIsFavorite;
             final int _tmp;
             _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
@@ -523,6 +529,7 @@ public final class SongDao_Impl implements SongDao {
           final int _cursorIndexOfPath = CursorUtil.getColumnIndexOrThrow(_cursor, "path");
           final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
           final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
+          final int _cursorIndexOfDateModified = CursorUtil.getColumnIndexOrThrow(_cursor, "dateModified");
           final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
           final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
           final List<Song> _result = new ArrayList<Song>(_cursor.getCount());
@@ -580,6 +587,9 @@ public final class SongDao_Impl implements SongDao {
             final long _tmpDateAdded;
             _tmpDateAdded = _cursor.getLong(_cursorIndexOfDateAdded);
             _item.setDateAdded(_tmpDateAdded);
+            final long _tmpDateModified;
+            _tmpDateModified = _cursor.getLong(_cursorIndexOfDateModified);
+            _item.setDateModified(_tmpDateModified);
             final boolean _tmpIsFavorite;
             final int _tmp;
             _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
@@ -621,6 +631,7 @@ public final class SongDao_Impl implements SongDao {
       final int _cursorIndexOfPath = CursorUtil.getColumnIndexOrThrow(_cursor, "path");
       final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
       final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
+      final int _cursorIndexOfDateModified = CursorUtil.getColumnIndexOrThrow(_cursor, "dateModified");
       final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
       final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
       final Song _result;
@@ -677,6 +688,9 @@ public final class SongDao_Impl implements SongDao {
         final long _tmpDateAdded;
         _tmpDateAdded = _cursor.getLong(_cursorIndexOfDateAdded);
         _result.setDateAdded(_tmpDateAdded);
+        final long _tmpDateModified;
+        _tmpDateModified = _cursor.getLong(_cursorIndexOfDateModified);
+        _result.setDateModified(_tmpDateModified);
         final boolean _tmpIsFavorite;
         final int _tmp;
         _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
@@ -716,6 +730,7 @@ public final class SongDao_Impl implements SongDao {
           final int _cursorIndexOfPath = CursorUtil.getColumnIndexOrThrow(_cursor, "path");
           final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
           final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
+          final int _cursorIndexOfDateModified = CursorUtil.getColumnIndexOrThrow(_cursor, "dateModified");
           final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
           final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
           final Song _result;
@@ -772,6 +787,9 @@ public final class SongDao_Impl implements SongDao {
             final long _tmpDateAdded;
             _tmpDateAdded = _cursor.getLong(_cursorIndexOfDateAdded);
             _result.setDateAdded(_tmpDateAdded);
+            final long _tmpDateModified;
+            _tmpDateModified = _cursor.getLong(_cursorIndexOfDateModified);
+            _result.setDateModified(_tmpDateModified);
             final boolean _tmpIsFavorite;
             final int _tmp;
             _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);
@@ -815,6 +833,7 @@ public final class SongDao_Impl implements SongDao {
           final int _cursorIndexOfPath = CursorUtil.getColumnIndexOrThrow(_cursor, "path");
           final int _cursorIndexOfCustomCoverPath = CursorUtil.getColumnIndexOrThrow(_cursor, "customCoverPath");
           final int _cursorIndexOfDateAdded = CursorUtil.getColumnIndexOrThrow(_cursor, "dateAdded");
+          final int _cursorIndexOfDateModified = CursorUtil.getColumnIndexOrThrow(_cursor, "dateModified");
           final int _cursorIndexOfIsFavorite = CursorUtil.getColumnIndexOrThrow(_cursor, "isFavorite");
           final int _cursorIndexOfFavoriteOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "favoriteOrder");
           final List<Song> _result = new ArrayList<Song>(_cursor.getCount());
@@ -872,6 +891,9 @@ public final class SongDao_Impl implements SongDao {
             final long _tmpDateAdded;
             _tmpDateAdded = _cursor.getLong(_cursorIndexOfDateAdded);
             _item.setDateAdded(_tmpDateAdded);
+            final long _tmpDateModified;
+            _tmpDateModified = _cursor.getLong(_cursorIndexOfDateModified);
+            _item.setDateModified(_tmpDateModified);
             final boolean _tmpIsFavorite;
             final int _tmp;
             _tmp = _cursor.getInt(_cursorIndexOfIsFavorite);

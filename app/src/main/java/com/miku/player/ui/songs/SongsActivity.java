@@ -24,7 +24,9 @@ import com.miku.player.databinding.ActivitySongsBinding;
 import com.miku.player.ui.main.MainActivity;
 import com.miku.player.ui.player.PlayerActivity;
 import com.miku.player.ui.playlists.AddToPlaylistBottomSheet;
+import com.miku.player.utils.ActivityTransitions;
 import com.miku.player.utils.PlayerManager;
+import com.miku.player.utils.ViewAnimUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,9 +36,9 @@ public class SongsActivity extends AppCompatActivity
         implements SongsAdapter.OnSongClickListener {
 
     // Sort modes
-    private static final int SORT_AZ     = 0;
-    private static final int SORT_RECENT = 1;
-    private static final int SORT_ARTIST = 2;
+    private static final int SORT_AZ            = 0;
+    private static final int SORT_RECENT_ADDED   = 1;
+    private static final int SORT_RECENT_MODIFIED = 2;
     private static final String KEY_SORT_MODE = "songs_sort_mode";
 
     private ActivitySongsBinding binding;
@@ -59,20 +61,24 @@ public class SongsActivity extends AppCompatActivity
                     // 1. Invalidar Glide inmediatamente para que la lista refleje el cambio visual
                     adapter.invalidateCover(this, songRef.getId());
 
-                    // 2. Iniciar copia + DB. El callback notifica cuando la ruta local está lista,
-                    //    sin depender de un delay hardcodeado.
-                    viewModel.updateSongCover(songRef, uri.toString(),
-                            (songId, localPath) -> {
-                                adapter.invalidateCover(this, songId);
-                                com.miku.player.data.model.Song playing =
+                    // 2. Preguntar si además debe escribirse en el archivo original
+                    //    (se salta automáticamente para .opus).
+                    com.miku.player.utils.CoverWriteConfirm.ask(this, songRef.getPath(), writeToFile -> {
+                        // 3. Iniciar copia + DB. El callback notifica cuando la ruta local está lista,
+                        //    sin depender de un delay hardcodeado.
+                        viewModel.updateSongCover(songRef, uri.toString(), writeToFile,
+                                (songId, localPath) -> {
+                                    adapter.invalidateCover(this, songId);
+                                    com.miku.player.data.model.Song playing =
+                                            com.miku.player.utils.PlayerManager.getInstance()
+                                                    .getCurrentSongValue();
+                                    if (playing != null && playing.getId() == songId) {
+                                        songRef.setCustomCoverPath(localPath);
                                         com.miku.player.utils.PlayerManager.getInstance()
-                                                .getCurrentSongValue();
-                                if (playing != null && playing.getId() == songId) {
-                                    songRef.setCustomCoverPath(localPath);
-                                    com.miku.player.utils.PlayerManager.getInstance()
-                                            .updateCurrentSongCover(songRef);
-                                }
-                            });
+                                                .updateCurrentSongCover(songRef);
+                                    }
+                                });
+                    });
                 }
             });
 
@@ -163,17 +169,17 @@ public class SongsActivity extends AppCompatActivity
         // FIX: restaurar el último orden elegido por el usuario (antes siempre volvía a A-Z)
         SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
         currentSort = prefs.getInt(KEY_SORT_MODE, SORT_AZ);
-        int checkedChipId = currentSort == SORT_RECENT ? R.id.chipSortRecent
-                : currentSort == SORT_ARTIST ? R.id.chipSortArtist
+        int checkedChipId = currentSort == SORT_RECENT_ADDED ? R.id.chipSortAdded
+                : currentSort == SORT_RECENT_MODIFIED ? R.id.chipSortModified
                 : R.id.chipSortAZ;
         binding.chipGroupFilter.check(checkedChipId);
 
         binding.chipGroupFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.isEmpty()) return;
             int id = checkedIds.get(0);
-            if (id == R.id.chipSortAZ)     currentSort = SORT_AZ;
-            else if (id == R.id.chipSortRecent) currentSort = SORT_RECENT;
-            else if (id == R.id.chipSortArtist) currentSort = SORT_ARTIST;
+            if (id == R.id.chipSortAZ)             currentSort = SORT_AZ;
+            else if (id == R.id.chipSortAdded)     currentSort = SORT_RECENT_ADDED;
+            else if (id == R.id.chipSortModified)  currentSort = SORT_RECENT_MODIFIED;
             prefs.edit().putInt(KEY_SORT_MODE, currentSort).apply();
             applyFilterAndSort(true);
         });
@@ -188,7 +194,9 @@ public class SongsActivity extends AppCompatActivity
             String lower = currentQuery.toLowerCase().trim();
             filtered = new ArrayList<>();
             for (Song s : allSongs) {
-                if (s.getTitle().toLowerCase().contains(lower)
+                // FIX: buscaba por el título ORIGINAL del archivo, así que una canción
+                // renombrada dejaba de aparecer si buscabas por su nombre nuevo.
+                if (s.getDisplayTitle().toLowerCase().contains(lower)
                         || s.getArtist().toLowerCase().contains(lower)) {
                     filtered.add(s);
                 }
@@ -197,17 +205,20 @@ public class SongsActivity extends AppCompatActivity
 
         // 2. Sort
         switch (currentSort) {
-            case SORT_RECENT:
+            case SORT_RECENT_ADDED:
                 Collections.sort(filtered, (a, b) -> Long.compare(b.getDateAdded(), a.getDateAdded()));
                 break;
-            case SORT_ARTIST:
-                Collections.sort(filtered, Comparator.comparing(
-                        s -> (s.getArtist() + s.getTitle()).toLowerCase()));
+            case SORT_RECENT_MODIFIED:
+                Collections.sort(filtered, (a, b) -> Long.compare(b.getDateModified(), a.getDateModified()));
                 break;
             case SORT_AZ:
             default:
+                // FIX: esta es la causa de "no se acomoda a la posición nueva al
+                // renombrar" — ordenaba por el título ORIGINAL del archivo, así que
+                // una canción renombrada se quedaba en su posición alfabética vieja
+                // para siempre, sin importar cuántas veces se refrescara la lista.
                 Collections.sort(filtered, Comparator.comparing(
-                        s -> s.getTitle().toLowerCase()));
+                        s -> s.getDisplayTitle().toLowerCase()));
                 break;
         }
 
@@ -287,6 +298,7 @@ public class SongsActivity extends AppCompatActivity
         Song currentlyPlaying = pm.getCurrentSongValue();
         if (currentlyPlaying != null && currentlyPlaying.getId() == song.getId()) {
             startActivity(new Intent(this, PlayerActivity.class));
+            ActivityTransitions.forward(this);
             return;
         }
         List<Song> adapterList = adapter.getCurrentList();
@@ -294,6 +306,7 @@ public class SongsActivity extends AppCompatActivity
                 ? new ArrayList<>(adapterList) : new ArrayList<>(allSongs);
         pm.playSong(song, playQueue);
         startActivity(new Intent(this, PlayerActivity.class));
+        ActivityTransitions.forward(this);
     }
 
     @Override
@@ -370,11 +383,29 @@ public class SongsActivity extends AppCompatActivity
                             ? editText.getText().toString().trim() : "";
                     if (newName.isEmpty() || newName.equals(song.getDisplayTitle())) return;
                     viewModel.updateCustomTitle(song, newName, this);
+                    syncPlayerManagerTitle(song, newName);
                 })
-                .setNeutralButton("Restablecer original", (d, w) ->
-                        viewModel.updateCustomTitle(song, null, this))
+                .setNeutralButton("Restablecer original", (d, w) -> {
+                    viewModel.updateCustomTitle(song, null, this);
+                    syncPlayerManagerTitle(song, null);
+                })
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+
+    /**
+     * Si la canción renombrada es la que se está reproduciendo ahora mismo,
+     * refresca de inmediato el MediaItem activo — si no, la notificación /
+     * pantalla de bloqueo se quedaba mostrando el nombre viejo hasta el
+     * siguiente cambio de canción.
+     */
+    private void syncPlayerManagerTitle(Song song, String newTitle) {
+        PlayerManager pm = PlayerManager.getInstance();
+        Song playing = pm.getCurrentSongValue();
+        if (playing != null && playing.getId() == song.getId()) {
+            song.setCustomTitle(newTitle);
+            pm.updateCurrentSongMetadata(song);
+        }
     }
 
     private void showPermissionDenied() {
@@ -385,9 +416,9 @@ public class SongsActivity extends AppCompatActivity
     private void observeMiniPlayer() {
         PlayerManager pm = PlayerManager.getInstance();
         pm.getCurrentSong().observe(this, song -> {
-            if (song == null) { binding.miniPlayer.setVisibility(View.GONE); return; }
-            binding.miniPlayer.setVisibility(View.VISIBLE);
-            binding.tvMiniTitle.setText(song.getTitle());
+            if (song == null) { com.miku.player.utils.ViewAnimUtils.animateMiniPlayerVisibility(binding.miniPlayer, false); return; }
+            com.miku.player.utils.ViewAnimUtils.animateMiniPlayerVisibility(binding.miniPlayer, true);
+            binding.tvMiniTitle.setText(song.getDisplayTitle()); // FIX: mostraba el título original, no el personalizado
             binding.tvMiniArtist.setText(song.getArtist());
             com.bumptech.glide.Glide.with(this).clear(binding.ivMiniCover);
             binding.ivMiniCover.setImageResource(R.drawable.ic_default_album_art);
@@ -401,11 +432,13 @@ public class SongsActivity extends AppCompatActivity
         pm.getIsPlaying().observe(this, playing ->
                 binding.btnMiniPlayPause.setImageResource(
                         playing ? R.drawable.ic_pause : R.drawable.ic_play));
-        binding.miniPlayer.setOnClickListener(v ->
-                startActivity(new Intent(this, PlayerActivity.class)));
-        binding.btnMiniPlayPause.setOnClickListener(v -> pm.togglePlayPause());
-        binding.btnMiniNext.setOnClickListener(v -> pm.playNext());
-        binding.btnMiniPrevious.setOnClickListener(v -> pm.playPrevious());
+        binding.miniPlayer.setOnClickListener(v -> {
+            startActivity(new Intent(this, PlayerActivity.class));
+            ActivityTransitions.forward(this);
+        });
+        binding.btnMiniPlayPause.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.togglePlayPause(); });
+        binding.btnMiniNext.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playNext(); });
+        binding.btnMiniPrevious.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playPrevious(); });
 
         // Barra de progreso (seek bar) del mini player — se llama "mini seek bar"
         // Se actualiza cada 500ms mientras la canción está activa.
@@ -437,7 +470,11 @@ public class SongsActivity extends AppCompatActivity
     }
 
     @Override
-    public boolean onSupportNavigateUp() { finish(); return true; }
+    public boolean onSupportNavigateUp() {
+        finish();
+        ActivityTransitions.back(this);
+        return true;
+    }
 
     @Override
     protected void onDestroy() {

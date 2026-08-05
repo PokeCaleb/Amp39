@@ -16,6 +16,12 @@ public class Song {
     private String path;
     private String customCoverPath;
     private long dateAdded;
+    // Fecha real de última modificación del archivo — a diferencia de dateAdded
+    // (que se preserva y nunca cambia por una edición), esta SÍ se actualiza en
+    // cada escaneo para reflejar la fecha real del archivo, igual que muestra el
+    // administrador de archivos del sistema. Sirve para el criterio de orden
+    // "Modificadas" en Recientes.
+    private long dateModified;
     private boolean isFavorite;
     private long favoriteOrder; // timestamp en que se marcó favorito; 0 = nunca
 
@@ -59,6 +65,8 @@ public class Song {
     public void setCustomCoverPath(String p) { this.customCoverPath = p; }
     public long getDateAdded() { return dateAdded; }
     public void setDateAdded(long d) { this.dateAdded = d; }
+    public long getDateModified() { return dateModified; }
+    public void setDateModified(long d) { this.dateModified = d; }
     public boolean isFavorite() { return isFavorite; }
     public void setFavorite(boolean favorite) { isFavorite = favorite; }
 

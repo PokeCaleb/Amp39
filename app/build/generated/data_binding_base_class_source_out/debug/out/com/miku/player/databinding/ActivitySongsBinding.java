@@ -45,10 +45,10 @@ public final class ActivitySongsBinding implements ViewBinding {
   public final Chip chipSortAZ;
 
   @NonNull
-  public final Chip chipSortArtist;
+  public final Chip chipSortAdded;
 
   @NonNull
-  public final Chip chipSortRecent;
+  public final Chip chipSortModified;
 
   @NonNull
   public final TextInputEditText etSearch;
@@ -83,7 +83,7 @@ public final class ActivitySongsBinding implements ViewBinding {
   private ActivitySongsBinding(@NonNull CoordinatorLayout rootView,
       @NonNull ImageButton btnMiniNext, @NonNull ImageButton btnMiniPlayPause,
       @NonNull ImageButton btnMiniPrevious, @NonNull ChipGroup chipGroupFilter,
-      @NonNull Chip chipSortAZ, @NonNull Chip chipSortArtist, @NonNull Chip chipSortRecent,
+      @NonNull Chip chipSortAZ, @NonNull Chip chipSortAdded, @NonNull Chip chipSortModified,
       @NonNull TextInputEditText etSearch, @NonNull ShapeableImageView ivMiniCover,
       @NonNull MaterialCardView miniPlayer, @NonNull ProgressBar miniPlayerProgress,
       @NonNull RecyclerView rvSongs, @NonNull TextInputLayout tilSearch,
@@ -95,8 +95,8 @@ public final class ActivitySongsBinding implements ViewBinding {
     this.btnMiniPrevious = btnMiniPrevious;
     this.chipGroupFilter = chipGroupFilter;
     this.chipSortAZ = chipSortAZ;
-    this.chipSortArtist = chipSortArtist;
-    this.chipSortRecent = chipSortRecent;
+    this.chipSortAdded = chipSortAdded;
+    this.chipSortModified = chipSortModified;
     this.etSearch = etSearch;
     this.ivMiniCover = ivMiniCover;
     this.miniPlayer = miniPlayer;
@@ -166,15 +166,15 @@ public final class ActivitySongsBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.chipSortArtist;
-      Chip chipSortArtist = ViewBindings.findChildViewById(rootView, id);
-      if (chipSortArtist == null) {
+      id = R.id.chipSortAdded;
+      Chip chipSortAdded = ViewBindings.findChildViewById(rootView, id);
+      if (chipSortAdded == null) {
         break missingId;
       }
 
-      id = R.id.chipSortRecent;
-      Chip chipSortRecent = ViewBindings.findChildViewById(rootView, id);
-      if (chipSortRecent == null) {
+      id = R.id.chipSortModified;
+      Chip chipSortModified = ViewBindings.findChildViewById(rootView, id);
+      if (chipSortModified == null) {
         break missingId;
       }
 
@@ -239,7 +239,7 @@ public final class ActivitySongsBinding implements ViewBinding {
       }
 
       return new ActivitySongsBinding((CoordinatorLayout) rootView, btnMiniNext, btnMiniPlayPause,
-          btnMiniPrevious, chipGroupFilter, chipSortAZ, chipSortArtist, chipSortRecent, etSearch,
+          btnMiniPrevious, chipGroupFilter, chipSortAZ, chipSortAdded, chipSortModified, etSearch,
           ivMiniCover, miniPlayer, miniPlayerProgress, rvSongs, tilSearch, toolbar, tvMiniArtist,
           tvMiniTitle, tvSongCount);
     }

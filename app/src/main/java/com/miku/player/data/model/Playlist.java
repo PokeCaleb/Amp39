@@ -11,6 +11,10 @@ public class Playlist {
     private String name;
     private String coverPath;   // custom cover image path
     private long createdAt;
+    // Orden manual definido por el usuario al arrastrar (mantener presionado) una
+    // lista en la pantalla de Playlists. Se inicializa igual a createdAt para que
+    // una playlist recién creada aparezca primero, igual que antes de este campo.
+    private long sortOrder;
 
     public Playlist() {}
 
@@ -18,6 +22,7 @@ public class Playlist {
     public Playlist(String name) {
         this.name = name;
         this.createdAt = System.currentTimeMillis();
+        this.sortOrder = this.createdAt;
     }
 
     public long getId() { return id; }
@@ -31,4 +36,7 @@ public class Playlist {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public long getSortOrder() { return sortOrder; }
+    public void setSortOrder(long sortOrder) { this.sortOrder = sortOrder; }
 }

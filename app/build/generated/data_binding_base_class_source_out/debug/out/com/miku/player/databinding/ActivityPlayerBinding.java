@@ -75,6 +75,9 @@ public final class ActivityPlayerBinding implements ViewBinding {
   @NonNull
   public final TextView tvSongTitle;
 
+  @NonNull
+  public final View vDynamicBackground;
+
   private ActivityPlayerBinding(@NonNull ConstraintLayout rootView,
       @NonNull ImageButton btnFavoritePlayer, @NonNull ImageButton btnNext,
       @NonNull ImageButton btnPlayPause, @NonNull ImageButton btnPrevious,
@@ -83,7 +86,7 @@ public final class ActivityPlayerBinding implements ViewBinding {
       @NonNull LinearLayout llControls, @NonNull Slider seekBar, @NonNull MaterialToolbar toolbar,
       @NonNull TextView tvArtist, @NonNull TextView tvCurrentTime, @NonNull TextView tvDuration,
       @NonNull TextView tvNowPlayingLabel, @NonNull TextView tvRepeatOneBadge,
-      @NonNull TextView tvSongTitle) {
+      @NonNull TextView tvSongTitle, @NonNull View vDynamicBackground) {
     this.rootView = rootView;
     this.btnFavoritePlayer = btnFavoritePlayer;
     this.btnNext = btnNext;
@@ -102,6 +105,7 @@ public final class ActivityPlayerBinding implements ViewBinding {
     this.tvNowPlayingLabel = tvNowPlayingLabel;
     this.tvRepeatOneBadge = tvRepeatOneBadge;
     this.tvSongTitle = tvSongTitle;
+    this.vDynamicBackground = vDynamicBackground;
   }
 
   @Override
@@ -233,10 +237,16 @@ public final class ActivityPlayerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.vDynamicBackground;
+      View vDynamicBackground = ViewBindings.findChildViewById(rootView, id);
+      if (vDynamicBackground == null) {
+        break missingId;
+      }
+
       return new ActivityPlayerBinding((ConstraintLayout) rootView, btnFavoritePlayer, btnNext,
           btnPlayPause, btnPrevious, btnRepeat, btnShuffle, ivAlbumArt, ivAlbumArtPreview,
           llControls, seekBar, toolbar, tvArtist, tvCurrentTime, tvDuration, tvNowPlayingLabel,
-          tvRepeatOneBadge, tvSongTitle);
+          tvRepeatOneBadge, tvSongTitle, vDynamicBackground);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

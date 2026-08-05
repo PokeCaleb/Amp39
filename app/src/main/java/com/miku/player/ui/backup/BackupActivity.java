@@ -171,7 +171,11 @@ public class BackupActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onSupportNavigateUp() { finish(); return true; }
+    public boolean onSupportNavigateUp() {
+        finish();
+        com.miku.player.utils.ActivityTransitions.back(this);
+        return true;
+    }
 
     @Override
     protected void onDestroy() {

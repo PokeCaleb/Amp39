@@ -1,6 +1,7 @@
 package com.miku.player.ui.player;
 
 import android.content.Intent;
+import androidx.core.content.ContextCompat;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -23,6 +24,7 @@ import com.miku.player.data.repository.MusicRepository;
 import com.miku.player.databinding.ActivityPlayerBinding;
 import com.miku.player.ui.playlists.AddToPlaylistBottomSheet;
 import com.miku.player.utils.PlayerManager;
+import com.miku.player.utils.ViewAnimUtils;
 
 public class PlayerActivity extends AppCompatActivity {
 
@@ -72,9 +74,13 @@ public class PlayerActivity extends AppCompatActivity {
                 currentSong.setCustomCoverPath(uri.toString());
                 loadAlbumArt(currentSong);
 
-                // 2. Iniciar copia asíncrona + actualización de DB.
-                //    El callback notifica cuando la ruta local ya está lista.
-                repository.updateSongCover(currentSong, uri.toString(), coverUpdateCallback);
+                // 2. Preguntar si además debe escribirse en el archivo original
+                //    (se salta automáticamente para .opus).
+                com.miku.player.utils.CoverWriteConfirm.ask(this, currentSong.getPath(), writeToFile -> {
+                    // 3. Iniciar copia asíncrona + actualización de DB.
+                    //    El callback notifica cuando la ruta local ya está lista.
+                    repository.updateSongCover(currentSong, uri.toString(), writeToFile, coverUpdateCallback);
+                });
             });
 
     @Override
@@ -90,14 +96,13 @@ public class PlayerActivity extends AppCompatActivity {
             @Override
             public void handleOnBackPressed() {
                 finish();
-                overridePendingTransition(
-                        android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+                com.miku.player.utils.ActivityTransitions.back(PlayerActivity.this);
             }
         });
 
         binding.toolbar.setNavigationOnClickListener(v -> {
             finish();
-            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+            com.miku.player.utils.ActivityTransitions.back(PlayerActivity.this);
         });
 
         setupControls();
@@ -342,23 +347,26 @@ public class PlayerActivity extends AppCompatActivity {
         binding.btnShuffle.setAlpha(shuffleOn ? 1f : 0.4f);
         updateRepeatIcon();
 
-        binding.btnPlayPause.setOnClickListener(v -> pm.togglePlayPause());
-        binding.btnNext.setOnClickListener(v -> pm.playNext());
-        binding.btnPrevious.setOnClickListener(v -> pm.playPrevious());
+        binding.btnPlayPause.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.togglePlayPause(); });
+        binding.btnNext.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playNext(); });
+        binding.btnPrevious.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playPrevious(); });
 
         binding.btnShuffle.setOnClickListener(v -> {
+            ViewAnimUtils.pulse(v);
             shuffleOn = !shuffleOn;
             pm.setShuffleEnabled(shuffleOn);
             binding.btnShuffle.setAlpha(shuffleOn ? 1f : 0.4f);
         });
 
         binding.btnRepeat.setOnClickListener(v -> {
+            ViewAnimUtils.pulse(v);
             repeatMode = (repeatMode + 1) % 3;
             pm.setRepeatMode(repeatMode);
             updateRepeatIcon();
         });
 
         binding.btnFavoritePlayer.setOnClickListener(v -> {
+            ViewAnimUtils.pulse(v);
             if (currentSong != null) {
                 boolean newState = !currentSong.isFavorite();
                 currentSong.setFavorite(newState);
@@ -367,12 +375,13 @@ public class PlayerActivity extends AppCompatActivity {
             }
         });
 
+        binding.seekBar.setLabelFormatter(value -> fmt((long) (value * 1000f)));
         binding.seekBar.addOnSliderTouchListener(
                 new com.google.android.material.slider.Slider.OnSliderTouchListener() {
                     public void onStartTrackingTouch(com.google.android.material.slider.Slider s) { isSeeking = true; }
                     public void onStopTrackingTouch(com.google.android.material.slider.Slider s) {
                         isSeeking = false;
-                        pm.seekTo((long)(s.getValue() / 100f * pm.getDuration()));
+                        pm.seekTo((long) (s.getValue() * 1000f));
                     }
                 });
 
@@ -457,14 +466,80 @@ public class PlayerActivity extends AppCompatActivity {
                     public void onResourceReady(Bitmap bmp, Transition<? super Bitmap> t) {
                         if (binding == null) return;
                         binding.ivAlbumArt.setImageBitmap(bmp);
+                        applyPaletteFromBitmap(bmp);
                     }
                     public void onLoadCleared(android.graphics.drawable.Drawable p) {
-                        if (binding != null) binding.ivAlbumArt.setImageResource(R.drawable.ic_default_album_art);
+                        if (binding == null) return;
+                        binding.ivAlbumArt.setImageResource(R.drawable.ic_default_album_art);
+                        clearDynamicBackground();
                     }
                     public void onLoadFailed(android.graphics.drawable.Drawable errorDrawable) {
-                        if (binding != null) binding.ivAlbumArt.setImageResource(R.drawable.ic_default_album_art);
+                        if (binding == null) return;
+                        binding.ivAlbumArt.setImageResource(R.drawable.ic_default_album_art);
+                        clearDynamicBackground();
                     }
                 });
+    }
+
+    // ── Theming dinámico según la carátula ───────────────────────────────────
+    // Extrae el color dominante de la carátula actual (androidx.palette) y tiñe
+    // un degradado detrás del contenido, animando la transición entre canciones.
+    // Si la extracción falla por cualquier razón, simplemente no se aplica ningún
+    // tinte — el fondo base de la pantalla ya cubre ese caso sin romper nada.
+    private int currentBgColor = 0;
+
+    private void applyPaletteFromBitmap(Bitmap bmp) {
+        androidx.palette.graphics.Palette.from(bmp).clearFilters().generate(palette -> {
+            if (binding == null || palette == null) return;
+            animateDynamicBackground(pickThemeColor(palette));
+        });
+    }
+
+    private int pickThemeColor(androidx.palette.graphics.Palette palette) {
+        androidx.palette.graphics.Palette.Swatch swatch = palette.getDominantSwatch();
+        if (swatch == null) swatch = palette.getVibrantSwatch();
+        if (swatch == null) swatch = palette.getDarkVibrantSwatch();
+        if (swatch == null) swatch = palette.getMutedSwatch();
+        if (swatch == null) swatch = palette.getDarkMutedSwatch();
+        if (swatch == null) return ContextCompat.getColor(this, R.color.md_theme_surfaceVariant);
+        return darkenForDarkTheme(swatch.getRgb());
+    }
+
+    /** Mantiene el tono/saturación del color extraído, pero limita su luminosidad
+     *  para que combine con el tema oscuro sin arruinar el contraste del texto. */
+    private int darkenForDarkTheme(int color) {
+        float[] hsl = new float[3];
+        androidx.core.graphics.ColorUtils.colorToHSL(color, hsl);
+        hsl[2] = Math.min(hsl[2], 0.26f);
+        hsl[1] = Math.min(hsl[1] * 1.15f, 0.85f);
+        return androidx.core.graphics.ColorUtils.HSLToColor(hsl);
+    }
+
+    private void animateDynamicBackground(int targetColor) {
+        if (binding == null) return;
+        int startColor = currentBgColor != 0 ? currentBgColor
+                : ContextCompat.getColor(this, R.color.md_theme_background);
+        android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofObject(
+                new android.animation.ArgbEvaluator(), startColor, targetColor);
+        animator.setDuration(500);
+        animator.addUpdateListener(a -> updateGradientColor((int) a.getAnimatedValue()));
+        animator.start();
+        currentBgColor = targetColor;
+    }
+
+    private void updateGradientColor(int color) {
+        if (binding == null) return;
+        int fadedTop = (color & 0x00FFFFFF) | (Math.round(255 * 0.55f) << 24);
+        int transparent = color & 0x00FFFFFF;
+        android.graphics.drawable.GradientDrawable gradient = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{fadedTop, transparent});
+        binding.vDynamicBackground.setBackground(gradient);
+    }
+
+    private void clearDynamicBackground() {
+        currentBgColor = 0;
+        if (binding != null) binding.vDynamicBackground.setBackground(null);
     }
 
     private void startProgressUpdater() {
@@ -481,7 +556,19 @@ public class PlayerActivity extends AppCompatActivity {
         long pos = pm.getPositionMs();
         long dur = pm.getDuration();
         if (dur <= 0) return;
-        binding.seekBar.setValue(Math.min((pos * 100f) / dur, 100f));
+
+        // FIX: el Slider usaba una escala fija de 0 a 100 (porcentaje), por eso la
+        // burbuja que Material Slider muestra al arrastrar mostraba "50" a mitad de
+        // canción en vez de un tiempo real. Ahora el rango del Slider son los
+        // segundos REALES de duración de la canción, y un LabelFormatter (ver
+        // setupControls) convierte ese valor a "mm:ss" para la burbuja.
+        float durSec = dur / 1000f;
+        if (binding.seekBar.getValueTo() != durSec) {
+            binding.seekBar.setValueTo(Math.max(durSec, 0.01f));
+        }
+        float posSec = Math.min(pos / 1000f, durSec);
+        binding.seekBar.setValue(Math.max(posSec, 0f));
+
         binding.tvCurrentTime.setText(fmt(pos));
         binding.tvDuration.setText(fmt(dur));
     }
@@ -564,6 +651,10 @@ public class PlayerActivity extends AppCompatActivity {
                             public void onError(String msg) {
                                 currentSong.setCustomTitle(null);
                                 binding.tvSongTitle.setText(currentSong.getDisplayTitle());
+                                com.google.android.material.snackbar.Snackbar.make(
+                                    binding.getRoot(),
+                                    "Nombre restablecido (no se pudo escribir en el archivo: " + msg + ")",
+                                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG).show();
                             }
                         });
                 })

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import com.miku.player.databinding.ActivitySettingsBinding;
 import com.miku.player.ui.backup.BackupActivity;
+import com.miku.player.utils.ActivityTransitions;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -16,9 +17,14 @@ public class SettingsActivity extends AppCompatActivity {
         binding = ActivitySettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        binding.toolbar.setNavigationOnClickListener(v -> finish());
-        binding.cardBackup.setOnClickListener(v ->
-                startActivity(new Intent(this, BackupActivity.class)));
+        binding.toolbar.setNavigationOnClickListener(v -> {
+            finish();
+            ActivityTransitions.back(this);
+        });
+        binding.cardBackup.setOnClickListener(v -> {
+            startActivity(new Intent(this, BackupActivity.class));
+            ActivityTransitions.forward(this);
+        });
     }
 
     @Override

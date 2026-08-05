@@ -1,5 +1,11 @@
 R_DEF: Internal format may change without notice
 local
+anim item_fall_down
+anim layout_animation_fall_down
+anim slide_in_left_fade
+anim slide_in_right
+anim slide_out_left
+anim slide_out_right_fade
 color md_theme_background
 color md_theme_error
 color md_theme_errorContainer
@@ -145,8 +151,8 @@ id cardSelectFolder
 id cardSettings
 id chipGroupFilter
 id chipSortAZ
-id chipSortArtist
-id chipSortRecent
+id chipSortAdded
+id chipSortModified
 id etSearch
 id fabAddSongs
 id fabConfirmReorder
@@ -189,6 +195,7 @@ id tvSelectedFolder
 id tvSongArtist
 id tvSongCount
 id tvSongTitle
+id vDynamicBackground
 layout activity_backup
 layout activity_favorites
 layout activity_main

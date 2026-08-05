@@ -87,17 +87,17 @@
                     style="@style/Widget.Material3.Chip.Filter" />
 
                 <com.google.android.material.chip.Chip
-                    android:id="@+id/chipSortRecent"
+                    android:id="@+id/chipSortAdded"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Recientes"
+                    android:text="Agregadas"
                     style="@style/Widget.Material3.Chip.Filter" />
 
                 <com.google.android.material.chip.Chip
-                    android:id="@+id/chipSortArtist"
+                    android:id="@+id/chipSortModified"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Artista"
+                    android:text="Modificadas"
                     style="@style/Widget.Material3.Chip.Filter" />
 
             </com.google.android.material.chip.ChipGroup>
@@ -120,6 +120,7 @@
             android:id="@+id/rvSongs"
             android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:layoutAnimation="@anim/layout_animation_fall_down"
             android:layout_weight="1"
             android:paddingBottom="88dp"
             android:clipToPadding="false" />

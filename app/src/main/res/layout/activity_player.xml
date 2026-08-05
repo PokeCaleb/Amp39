@@ -6,6 +6,21 @@
     android:layout_height="match_parent"
     android:background="@color/md_theme_background">
 
+    <!-- Fondo dinámico: un degradado teñido con el color dominante de la carátula
+         actual, que se desvanece hacia transparente. Ver PlayerActivity#
+         applyPaletteFromBitmap(). Va PRIMERO en el XML para quedar detrás de
+         todo lo demás (ConstraintLayout dibuja en orden de declaración). Si la
+         extracción de color falla por cualquier motivo, simplemente se queda
+         sin fondo (transparente) y no pasa nada — el fondo base ya cubre eso. -->
+    <View
+        android:id="@+id/vDynamicBackground"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
     <!-- Top bar: down arrow + 3-dot menu -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
@@ -33,7 +48,22 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Album art — large square -->
+    <!-- Album art — el CONTENEDOR es fijo (cuadrado 1:1, misma posición
+         siempre). Lo único que cambia según la carátula es CÓMO se dibuja
+         la imagen adentro: fitCenter respeta el aspecto real del bitmap
+         (vertical, horizontal o cuadrado) sin recortarlo, dejando espacio
+         vacío ("letterbox") arriba/abajo o a los costados cuando no coincide
+         con el cuadrado. Título, artista, controles y barra de progreso
+         NUNCA se mueven, sin importar la forma de la carátula — porque el
+         contenedor que los precede (ivAlbumArt) nunca cambia de tamaño.
+         El aspect ratio real ya no se toca por código (ver
+         PlayerActivity#applyAlbumArtAspectRatio, ahora sin efecto sobre
+         layout_constraintDimensionRatio) — MusicRepository ya no aplasta
+         las carátulas a 512×512 forzado, así que fitCenter puede mostrar
+         su proporción real dentro de este espacio fijo.
+         SIN background: el letterbox queda transparente y se funde con el
+         fondo dinámico degradado de la pantalla (ver applyPaletteFromBitmap),
+         en vez de mostrarse como un rectángulo de color sólido contrastante. -->
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/ivAlbumArt"
         android:layout_width="0dp"
@@ -41,7 +71,7 @@
         android:layout_marginHorizontal="28dp"
         android:layout_marginTop="16dp"
         android:src="@drawable/ic_default_album_art"
-        android:scaleType="centerCrop"
+        android:scaleType="fitCenter"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.MikuPlayer.AlbumArt"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintStart_toStartOf="parent"
@@ -60,7 +90,7 @@
         android:layout_height="0dp"
         android:layout_marginHorizontal="28dp"
         android:layout_marginTop="16dp"
-        android:scaleType="centerCrop"
+        android:scaleType="fitCenter"
         android:visibility="gone"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.MikuPlayer.AlbumArt"
         app:layout_constraintTop_toBottomOf="@id/toolbar"

@@ -17,12 +17,15 @@ interface PlaylistDao {
     @Delete
     void deletePlaylist(Playlist playlist);
 
-    @Query("SELECT * FROM playlists ORDER BY createdAt DESC")
+    @Query("SELECT * FROM playlists ORDER BY sortOrder DESC")
     LiveData<List<Playlist>> getAllPlaylists();
 
     @Transaction
-    @Query("SELECT * FROM playlists ORDER BY createdAt DESC")
+    @Query("SELECT * FROM playlists ORDER BY sortOrder DESC")
     LiveData<List<PlaylistWithSongs>> getAllPlaylistsWithSongs();
+
+    @Query("UPDATE playlists SET sortOrder = :sortOrder WHERE id = :playlistId")
+    void updatePlaylistSortOrder(long playlistId, long sortOrder);
 
     @Transaction
     @Query("SELECT * FROM playlists WHERE id = :playlistId")
