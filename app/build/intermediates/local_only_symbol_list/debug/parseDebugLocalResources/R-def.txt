@@ -126,6 +126,7 @@ font gflex_variable
 id action_add_to_playlist
 id action_change_cover
 id action_delete
+id action_remove_cover
 id action_rename
 id action_reorder
 id btnFavorite

@@ -37,6 +37,10 @@ public class PlaylistsViewModel extends AndroidViewModel {
         repository.updatePlaylistCover(playlist, coverPath);
     }
 
+    public void removePlaylistCover(Playlist playlist) {
+        repository.removePlaylistCover(playlist);
+    }
+
     public void reorderPlaylists(List<Long> orderedPlaylistIds) {
         repository.reorderPlaylists(orderedPlaylistIds);
     }

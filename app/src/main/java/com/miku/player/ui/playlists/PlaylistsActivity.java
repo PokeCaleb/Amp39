@@ -204,13 +204,22 @@ public class PlaylistsActivity extends AppCompatActivity
 
     @Override
     public void onMoreClick(PlaylistWithSongs playlistWithSongs) {
+        boolean hasCustomCover = playlistWithSongs.playlist.getCoverPath() != null;
+        java.util.List<String> options = new java.util.ArrayList<>();
+        options.add("Cambiar portada");
+        if (hasCustomCover) options.add("Quitar portada personalizada");
+        options.add(getString(R.string.delete_playlist));
+
         new MaterialAlertDialogBuilder(this)
                 .setTitle(playlistWithSongs.playlist.getName())
-                .setItems(new String[]{"Cambiar portada", getString(R.string.delete_playlist)},
-                        (dialog, which) -> {
-                    if (which == 0) {
+                .setItems(options.toArray(new String[0]), (dialog, which) -> {
+                    String selected = options.get(which);
+                    if (selected.equals("Cambiar portada")) {
                         pendingCoverPlaylist = playlistWithSongs.playlist;
                         coverPickerLauncher.launch("image/*");
+                    } else if (selected.equals("Quitar portada personalizada")) {
+                        // Vuelve a mostrarse automáticamente la carátula de la primera canción.
+                        viewModel.removePlaylistCover(playlistWithSongs.playlist);
                     } else {
                         new MaterialAlertDialogBuilder(this)
                                 .setTitle("¿Eliminar lista?")

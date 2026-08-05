@@ -18,6 +18,11 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_remove_cover"
+        android:title="Quitar portada personalizada"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_delete"
         android:title="Eliminar"
         app:showAsAction="never" />

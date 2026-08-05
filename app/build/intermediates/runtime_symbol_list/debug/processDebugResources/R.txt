@@ -3474,6 +3474,7 @@ int id action_menu_presenter 0x7f0a0043
 int id action_mode_bar 0x7f0a0044
 int id action_mode_bar_stub 0x7f0a0045
 int id action_mode_close_button 0x7f0a0046
+int id action_remove_cover 0x7f0a0282
 int id action_rename 0x7f0a0047
 int id action_reorder 0x7f0a0048
 int id action_text 0x7f0a0049

@@ -697,6 +697,26 @@ public class MusicRepository {
     }
 
     /**
+     * Quita la portada personalizada de una playlist — vuelve a mostrarse
+     * automáticamente la carátula de la primera canción (ver
+     * PlaylistWithSongs#getFirstSongByPosition, usado en la UI).
+     */
+    public void removePlaylistCover(Playlist playlist) {
+        executor.execute(() -> {
+            // Borra el archivo local que ya no se usa, si existe
+            String oldPath = playlist.getCoverPath();
+            if (oldPath != null && oldPath.startsWith("/")) {
+                try {
+                    java.io.File f = new java.io.File(oldPath);
+                    if (f.exists()) f.delete();
+                } catch (Exception ignored) {}
+            }
+            playlist.setCoverPath(null);
+            db.playlistDao().updatePlaylist(playlist);
+        });
+    }
+
+    /**
      * Copies any URI-addressable image into filesDir/covers/playlist_cover_<id>.jpg.
      * Mirror of copyImageToCoversDir() but for playlist covers. Returns the absolute
      * path of the saved file, or null on failure (caller falls back to the raw URI).

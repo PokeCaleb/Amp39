@@ -32,6 +32,7 @@ public class PlaylistDetailViewModel extends AndroidViewModel {
     public void deletePlaylist(Playlist playlist) { repository.deletePlaylist(playlist); }
     public void removeSong(long playlistId, long songId) { repository.removeSongFromPlaylist(playlistId, songId); }
     public void updatePlaylistCover(Playlist playlist, String coverPath) { repository.updatePlaylistCover(playlist, coverPath); }
+    public void removePlaylistCover(Playlist playlist) { repository.removePlaylistCover(playlist); }
     public void reorderSongs(long playlistId, List<Long> orderedIds) { repository.reorderPlaylistSongs(playlistId, orderedIds); }
     public void toggleFavorite(Song song) { repository.toggleFavorite(song); }
     public void setFavorite(Song song, boolean state) { repository.setFavorite(song, state); }

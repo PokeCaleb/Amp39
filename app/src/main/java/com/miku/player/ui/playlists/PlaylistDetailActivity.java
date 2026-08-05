@@ -167,13 +167,19 @@ public class PlaylistDetailActivity extends AppCompatActivity
             List<Song> junctionSongs = pws.songs != null ? pws.songs : new ArrayList<>();
             Object coverSource = null;
             String sig = "default";
-            if (pws.playlist.getCoverPath() != null) {
+            boolean hasCustomCover = pws.playlist.getCoverPath() != null;
+            if (hasCustomCover) {
                 Object[] resolved = PlaylistsAdapter.resolvePlaylistCoverSourceAndSignature(
                         pws.playlist.getCoverPath());
                 coverSource = resolved[0];
                 sig = (String) resolved[1];
             } else if (!junctionSongs.isEmpty()) {
-                com.miku.player.data.model.Song first = junctionSongs.get(0);
+                // FIX: usar la primera canción REAL según su posición (ver
+                // PlaylistWithSongs#getFirstSongByPosition) — junctionSongs.get(0)
+                // no tiene garantía de reflejar el orden real de la lista, así que
+                // la portada automática podía "cambiar sola" al agregar una canción
+                // nueva (Room reordena internamente esa lista sin avisar).
+                com.miku.player.data.model.Song first = pws.getFirstSongByPosition();
                 coverSource = com.miku.player.ui.songs.SongsAdapter.resolveCoverSource(first);
                 sig = first.getId() + ":" + (first.getCustomCoverPath() != null
                         ? first.getCustomCoverPath() : "");
@@ -184,6 +190,10 @@ public class PlaylistDetailActivity extends AppCompatActivity
                     .error(R.drawable.ic_default_album_art)
                     .centerCrop()
                     .into(binding.ivPlaylistHeader);
+
+            android.view.MenuItem removeCoverItem =
+                    binding.toolbar.getMenu().findItem(R.id.action_remove_cover);
+            if (removeCoverItem != null) removeCoverItem.setVisible(hasCustomCover);
         });
 
         viewModel.getDirectSongs().observe(this, songs -> {
@@ -239,11 +249,21 @@ public class PlaylistDetailActivity extends AppCompatActivity
             if (id == R.id.action_delete)        { showDeleteDialog();   return true; }
             if (id == R.id.action_reorder)       { enterReorderMode();   return true; }
             if (id == R.id.action_change_cover)  { coverPickerLauncher.launch("image/*"); return true; }
+            if (id == R.id.action_remove_cover)  { removePlaylistCover(); return true; }
             return false;
         });
 
         // Botón palomita para confirmar el reorden — visible solo en modo reorder
         binding.fabConfirmReorder.setOnClickListener(v -> exitReorderMode());
+    }
+
+    /**
+     * Quita la portada personalizada de la playlist — vuelve a mostrarse
+     * automáticamente la carátula de la primera canción de la lista.
+     */
+    private void removePlaylistCover() {
+        if (currentPlaylist == null || currentPlaylist.playlist.getCoverPath() == null) return;
+        viewModel.removePlaylistCover(currentPlaylist.playlist);
     }
 
     private void enterReorderMode() {
