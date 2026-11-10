@@ -9,12 +9,14 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
+import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.miku.player.data.model.Song;
+import com.miku.player.data.repository.MusicRepository;
 import com.miku.player.data.service.MusicService;
 import java.io.File;
 import java.io.InputStream;
@@ -51,6 +53,10 @@ public class PlayerManager {
 
     private final ExecutorService bgExecutor = Executors.newSingleThreadExecutor();
 
+    private Context appContext;
+    // Errores de reproducción seguidos: evita saltar en bucle por toda la cola si todo falla.
+    private int errorStreak = 0;
+
     private PlayerManager() {}
 
     public static PlayerManager getInstance() {
@@ -63,6 +69,7 @@ public class PlayerManager {
     }
 
     public void connect(Context context) {
+        appContext = context.getApplicationContext();
         if (controller != null && controller.isConnected()) return;
         SessionToken token = new SessionToken(
                 context, new ComponentName(context, MusicService.class));
@@ -71,8 +78,9 @@ public class PlayerManager {
             try {
                 controller = controllerFuture.get();
                 attachListeners();
+                syncFromController();
             } catch (Exception e) {
-                e.printStackTrace();
+                android.util.Log.w("PlayerManager", "No se pudo conectar al servicio", e);
             }
         }, MoreExecutors.directExecutor());
     }
@@ -82,11 +90,20 @@ public class PlayerManager {
             @Override
             public void onIsPlayingChanged(boolean playing) {
                 isPlaying.postValue(playing);
+                if (playing) errorStreak = 0;
             }
 
             @Override
             public void onMediaItemTransition(MediaItem mediaItem, int reason) {
                 if (controller == null) return;
+                if (mediaItem == null || controller.getMediaItemCount() == 0) {
+                    // Cola vacía (por ejemplo, se eliminó la última canción).
+                    queue = new ArrayList<>();
+                    queueIndex = -1;
+                    currentSong.postValue(null);
+                    currentIndex.postValue(-1);
+                    return;
+                }
                 int idx = controller.getCurrentMediaItemIndex();
                 if (idx >= 0 && idx < queue.size()) {
                     queueIndex = idx;
@@ -94,7 +111,83 @@ public class PlayerManager {
                     currentIndex.postValue(idx);
                 }
             }
+
+            @Override
+            public void onShuffleModeEnabledChanged(boolean enabled) { shuffleOn = enabled; }
+
+            @Override
+            public void onRepeatModeChanged(int mode) { repeatMode = mode; }
+
+            /**
+             * Antes un archivo faltante/corrupto detenía la reproducción sin avisar.
+             * Ahora se informa y se salta a la siguiente canción (con tope para no
+             * recorrer la cola entera en bucle si todas fallan).
+             */
+            @Override
+            public void onPlayerError(PlaybackException error) {
+                errorStreak++;
+                Song failed = currentSong.getValue();
+                if (appContext != null) {
+                    android.widget.Toast.makeText(appContext,
+                            "No se pudo reproducir"
+                                    + (failed != null ? ": " + failed.getDisplayTitle() : ""),
+                            android.widget.Toast.LENGTH_SHORT).show();
+                }
+                if (controller == null) return;
+                if (errorStreak < Math.max(1, queue.size()) && controller.hasNextMediaItem()) {
+                    controller.seekToNextMediaItem();
+                    controller.prepare();
+                    controller.play();
+                }
+            }
         });
+    }
+
+    /**
+     * Si el servicio sigue vivo con una cola cargada pero este proceso se recreó, la cola
+     * en memoria está vacía y la UI quedaría desincronizada. Se reconstruye desde la base.
+     */
+    private void syncFromController() {
+        if (controller == null) return;
+        shuffleOn = controller.getShuffleModeEnabled();
+        repeatMode = controller.getRepeatMode();
+        isPlaying.postValue(controller.isPlaying());
+
+        int count = controller.getMediaItemCount();
+        if (count == 0 || !queue.isEmpty() || appContext == null) return;
+
+        final List<Long> ids = new ArrayList<>();
+        try {
+            for (int i = 0; i < count; i++) {
+                ids.add(Long.parseLong(controller.getMediaItemAt(i).mediaId));
+            }
+        } catch (NumberFormatException e) {
+            return;
+        }
+
+        MusicRepository.getInstance(appContext).getSongsByIdsAsync(ids, rebuilt -> {
+            // null = la cola del servicio no coincide con la base: no se adivina.
+            if (rebuilt == null || controller == null || !queue.isEmpty()
+                    || controller.getMediaItemCount() != rebuilt.size()) return;
+            queue = new ArrayList<>(rebuilt);
+            int i = controller.getCurrentMediaItemIndex();
+            if (i >= 0 && i < queue.size()) {
+                queueIndex = i;
+                currentSong.setValue(queue.get(i));
+                currentIndex.setValue(i);
+            }
+        });
+    }
+
+    /**
+     * Apaga la app por completo: pide al servicio detener la música y cerrar el proceso, y quita
+     * la tarea de "recientes". Es lo único que detiene la música tras cerrar la app.
+     */
+    public void shutdownApp(android.app.Activity activity) {
+        Context ctx = activity.getApplicationContext();
+        ctx.startService(new android.content.Intent(ctx, MusicService.class)
+                .setAction(MusicService.ACTION_SHUTDOWN));
+        activity.finishAndRemoveTask();
     }
 
     public void release() {
@@ -156,15 +249,63 @@ public class PlayerManager {
      * refreshes without interrupting playback.
      */
     public void updateCurrentSongCover(Song song) {
-        if (controller == null || queueIndex < 0 || queueIndex >= queue.size()) return;
+        if (controller == null) return;
+        int idx = -1;
+        for (int i = 0; i < queue.size(); i++) {
+            if (queue.get(i).getId() == song.getId()) { idx = i; break; }
+        }
+        if (idx < 0) return;
 
-        // Update our in-memory queue reference
-        queue.set(queueIndex, song);
+        queue.set(idx, song);
 
-        // Replace the MediaItem at the current index with updated artwork URI.
-        // Media3 will re-read artworkUri and update the notification automatically.
-        MediaItem updated = buildMediaItem(song);
-        controller.replaceMediaItem(queueIndex, updated);
+        // Reemplazar el ítem que se está reproduciendo puede reiniciarlo desde 0:
+        // se guarda la posición y el estado, y se restauran después.
+        boolean isCurrent = idx == controller.getCurrentMediaItemIndex();
+        long pos = isCurrent ? controller.getCurrentPosition() : 0L;
+        boolean playWhenReady = controller.getPlayWhenReady();
+
+        controller.replaceMediaItem(idx, buildMediaItem(song));
+
+        if (isCurrent) {
+            if (pos > 0) controller.seekTo(idx, pos);
+            controller.setPlayWhenReady(playWhenReady);
+            currentSong.postValue(song);
+        }
+    }
+
+    /**
+     * Quita una canción de la cola (p. ej. al eliminarla de la app). Si era la que
+     * sonaba, pasa a la siguiente; si era la única, se detiene la reproducción.
+     */
+    public void removeFromQueue(long songId) {
+        if (controller == null) return;
+        int idx = -1;
+        for (int i = 0; i < queue.size(); i++) {
+            if (queue.get(i).getId() == songId) { idx = i; break; }
+        }
+        if (idx < 0) return;
+
+        boolean wasCurrent = idx == controller.getCurrentMediaItemIndex();
+        List<Song> newQueue = new ArrayList<>(queue);
+        newQueue.remove(idx);
+        // La cola local se actualiza ANTES para que los callbacks vean índices coherentes.
+        queue = newQueue;
+        if (idx < queueIndex) { queueIndex--; currentIndex.postValue(queueIndex); }
+
+        controller.removeMediaItem(idx);
+
+        if (newQueue.isEmpty()) {
+            controller.stop();
+            controller.clearMediaItems();
+            queueIndex = -1;
+            currentSong.postValue(null);
+            currentIndex.postValue(-1);
+            isPlaying.postValue(false);
+        } else if (wasCurrent && idx >= newQueue.size()) {
+            // Se quitó la última: quedarse en la nueva última, en pausa.
+            controller.seekTo(newQueue.size() - 1, 0L);
+            controller.pause();
+        }
     }
 
     /**

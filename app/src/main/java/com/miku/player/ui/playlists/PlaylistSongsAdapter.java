@@ -154,7 +154,7 @@ public class PlaylistSongsAdapter extends RecyclerView.Adapter<PlaylistSongsAdap
 
             b.btnFavorite.setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
-                if (pos == RecyclerView.NO_ID) return;
+                if (pos == RecyclerView.NO_POSITION) return;
                 Song s = songs.get(pos);
                 boolean newState = !s.isFavorite();
                 // Update icon immediately on the mutable list item
@@ -165,11 +165,11 @@ public class PlaylistSongsAdapter extends RecyclerView.Adapter<PlaylistSongsAdap
 
             b.getRoot().setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
-                if (pos != RecyclerView.NO_ID) listener.onSongClick(songs.get(pos), pos);
+                if (pos != RecyclerView.NO_POSITION) listener.onSongClick(songs.get(pos), pos);
             });
             b.btnMore.setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
-                if (pos != RecyclerView.NO_ID) listener.onMoreClick(songs.get(pos), pos);
+                if (pos != RecyclerView.NO_POSITION) listener.onMoreClick(songs.get(pos), pos);
             });
         }
 

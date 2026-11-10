@@ -138,10 +138,14 @@ public class AddToPlaylistBottomSheet extends BottomSheetDialogFragment {
                 .setPositiveButton("Crear", (d, w) -> {
                     String name = et.getText() != null ? et.getText().toString().trim() : "";
                     if (name.isEmpty()) return;
+                    // El callback llega cuando el fragmento ya pudo haberse cerrado:
+                    // se captura TODO lo necesario ahora (nada de requireActivity() después).
+                    final android.content.Context appCtx = requireContext().getApplicationContext();
+                    final String createdMsg = getString(R.string.playlist_created);
                     repo.createPlaylist(name, playlistId -> {
                         repo.addSongToPlaylist(playlistId, song);
-                        requireActivity().runOnUiThread(() ->
-                                Toast.makeText(requireContext(), getString(R.string.playlist_created), Toast.LENGTH_SHORT).show());
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                                Toast.makeText(appCtx, createdMsg, Toast.LENGTH_SHORT).show());
                     });
                     dismiss();
                 })

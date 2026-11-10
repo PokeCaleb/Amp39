@@ -27,6 +27,9 @@ import com.miku.player.utils.PlayerManager;
 import com.miku.player.utils.ViewAnimUtils;
 
 public class PlayerActivity extends AppCompatActivity {
+    private final com.miku.player.utils.MediaStoreRequests mediaRequests =
+            new com.miku.player.utils.MediaStoreRequests(this);
+
 
     private ActivityPlayerBinding binding;
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
@@ -76,7 +79,7 @@ public class PlayerActivity extends AppCompatActivity {
 
                 // 2. Preguntar si además debe escribirse en el archivo original
                 //    (se salta automáticamente para .opus).
-                com.miku.player.utils.CoverWriteConfirm.ask(this, currentSong.getPath(), writeToFile -> {
+                com.miku.player.utils.CoverWriteConfirm.ask(this, mediaRequests, currentSong, writeToFile -> {
                     // 3. Iniciar copia asíncrona + actualización de DB.
                     //    El callback notifica cuando la ruta local ya está lista.
                     repository.updateSongCover(currentSong, uri.toString(), writeToFile, coverUpdateCallback);
@@ -543,6 +546,7 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     private void startProgressUpdater() {
+        progressHandler.removeCallbacksAndMessages(null); // evita ciclos duplicados
         progressHandler.postDelayed(new Runnable() {
             public void run() {
                 if (!isSeeking) updateProgress();
@@ -605,61 +609,48 @@ public class PlayerActivity extends AppCompatActivity {
 
     private void showRenameDialog() {
         if (currentSong == null) return;
-        com.google.android.material.textfield.TextInputLayout inputLayout =
-                new com.google.android.material.textfield.TextInputLayout(this);
-        inputLayout.setHint("Nombre de la canción");
-        inputLayout.setBoxBackgroundMode(
-                com.google.android.material.textfield.TextInputLayout.BOX_BACKGROUND_OUTLINE);
-        android.widget.EditText editText =
-                new com.google.android.material.textfield.TextInputEditText(inputLayout.getContext());
-        editText.setText(currentSong.getDisplayTitle());
-        editText.selectAll();
-        inputLayout.addView(editText);
-        int p = (int)(16 * getResources().getDisplayMetrics().density);
-        inputLayout.setPadding(p, p / 2, p, 0);
+        com.miku.player.ui.common.SongDialogs.showRename(this, currentSong, this::applyRename);
+    }
 
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle("Cambiar nombre")
-                .setView(inputLayout)
-                .setPositiveButton("Guardar", (d, w) -> {
-                    String newName = editText.getText() != null
-                            ? editText.getText().toString().trim() : "";
-                    if (newName.isEmpty() || newName.equals(currentSong.getDisplayTitle())) return;
-                    repository.updateCustomTitle(currentSong, newName, this,
-                        new com.miku.player.utils.TagWriter.Result() {
-                            public void onSuccess() {
-                                currentSong.setCustomTitle(newName);
-                                binding.tvSongTitle.setText(newName);
-                            }
-                            public void onError(String msg) {
-                                currentSong.setCustomTitle(newName);
-                                binding.tvSongTitle.setText(newName);
-                                com.google.android.material.snackbar.Snackbar.make(
-                                    binding.getRoot(),
-                                    "Nombre guardado (no se pudo escribir en el archivo: " + msg + ")",
-                                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG).show();
-                            }
-                        });
-                })
-                .setNeutralButton("Restablecer nombre original", (d, w) -> {
-                    repository.updateCustomTitle(currentSong, null, this,
-                        new com.miku.player.utils.TagWriter.Result() {
-                            public void onSuccess() {
-                                currentSong.setCustomTitle(null);
-                                binding.tvSongTitle.setText(currentSong.getDisplayTitle());
-                            }
-                            public void onError(String msg) {
-                                currentSong.setCustomTitle(null);
-                                binding.tvSongTitle.setText(currentSong.getDisplayTitle());
-                                com.google.android.material.snackbar.Snackbar.make(
-                                    binding.getRoot(),
-                                    "Nombre restablecido (no se pudo escribir en el archivo: " + msg + ")",
-                                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG).show();
-                            }
-                        });
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
+    /** @param newName texto nuevo, o null para "Restablecer original". */
+    private void applyRename(String newName) {
+        final Song target = currentSong;
+        if (target == null) return;
+        com.miku.player.utils.TitleWriteConfirm.ask(this, mediaRequests, target, writeToFile -> {
+            if (binding == null || currentSong != target) return;
+            repository.updateCustomTitle(target, newName, this, writeToFile,
+                new com.miku.player.utils.TagWriter.Result() {
+                    public void onSuccess() { applyTitleToUi(target, newName, null); }
+                    public void onError(String msg) {
+                        applyTitleToUi(target, newName, (newName != null
+                                ? "Nombre guardado" : "Nombre restablecido")
+                                + " (no se pudo escribir en el archivo: " + msg + ")");
+                    }
+                });
+        });
+    }
+
+    private void applyTitleToUi(Song target, String newName, String snackbarMessage) {
+        if (binding == null || currentSong != target) return;
+        currentSong.setCustomTitle(newName);
+        binding.tvSongTitle.setText(currentSong.getDisplayTitle());
+        if (snackbarMessage != null) {
+            com.google.android.material.snackbar.Snackbar.make(binding.getRoot(),
+                    snackbarMessage,
+                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        startProgressUpdater();
+    }
+
+    @Override
+    protected void onStop() {
+        progressHandler.removeCallbacksAndMessages(null);
+        super.onStop();
     }
 
     @Override

@@ -2,7 +2,6 @@
 <full-backup-content>
     <!-- Back up the Room database -->
     <include domain="database" path="miku_player.db" />
-    <include domain="database" path="miku_player.db-shm" />
     <include domain="database" path="miku_player.db-wal" />
     <!-- Back up covers cached in internal files dir -->
     <include domain="file" path="covers" />

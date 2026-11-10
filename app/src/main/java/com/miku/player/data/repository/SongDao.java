@@ -23,7 +23,7 @@ interface SongDao {
     @Query("SELECT * FROM songs ORDER BY title ASC")
     LiveData<List<Song>> getAllSongs();
 
-    @Query("SELECT * FROM songs WHERE title LIKE :query OR artist LIKE :query OR (customTitle IS NOT NULL AND customTitle LIKE :query) ORDER BY title ASC")
+    @Query("SELECT * FROM songs WHERE title LIKE :query ESCAPE '\\' OR artist LIKE :query ESCAPE '\\' OR (customTitle IS NOT NULL AND customTitle LIKE :query ESCAPE '\\') ORDER BY title ASC")
     LiveData<List<Song>> search(String query);
 
     @Query("SELECT * FROM songs WHERE id = :id")
@@ -49,8 +49,18 @@ interface SongDao {
     @Query("UPDATE songs SET customCoverPath = :path WHERE id = :id")
     void setCustomCoverPath(long id, String path);
 
-    @Query("DELETE FROM songs WHERE id NOT IN (SELECT DISTINCT songId FROM playlist_songs) AND id NOT IN (:scannedIds)")
-    void deleteOrphanSongsNotIn(List<Long> scannedIds);
+    /**
+     * IDs de canciones que se pueden descartar de la base si ya no aparecen en el
+     * escaneo: NO están en ninguna playlist, NO son favoritas y NO tienen título
+     * personalizado (para no perder el trabajo del usuario por un escaneo parcial).
+     */
+    @Query("SELECT id FROM songs WHERE isFavorite = 0 "
+         + "AND (customTitle IS NULL OR customTitle = '') "
+         + "AND id NOT IN (SELECT DISTINCT songId FROM playlist_songs)")
+    List<Long> getRemovableSongIds();
+
+    @Query("DELETE FROM songs WHERE id IN (:ids)")
+    void deleteByIds(List<Long> ids);
 
     @Query("DELETE FROM songs WHERE id NOT IN (SELECT DISTINCT songId FROM playlist_songs)")
     void deleteOrphanSongs();

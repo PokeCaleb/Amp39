@@ -50,6 +50,8 @@ public final class PlaylistDao_Impl implements PlaylistDao {
 
   private final SharedSQLiteStatement __preparedStmtOfRemoveSongFromPlaylistById;
 
+  private final SharedSQLiteStatement __preparedStmtOfRemoveSongFromAllPlaylists;
+
   private final SharedSQLiteStatement __preparedStmtOfUpdateSongPosition;
 
   public PlaylistDao_Impl(@NonNull final RoomDatabase __db) {
@@ -143,6 +145,14 @@ public final class PlaylistDao_Impl implements PlaylistDao {
       @NonNull
       public String createQuery() {
         final String _query = "DELETE FROM playlist_songs WHERE playlistId = ? AND songId = ?";
+        return _query;
+      }
+    };
+    this.__preparedStmtOfRemoveSongFromAllPlaylists = new SharedSQLiteStatement(__db) {
+      @Override
+      @NonNull
+      public String createQuery() {
+        final String _query = "DELETE FROM playlist_songs WHERE songId = ?";
         return _query;
       }
     };
@@ -245,6 +255,25 @@ public final class PlaylistDao_Impl implements PlaylistDao {
       }
     } finally {
       __preparedStmtOfRemoveSongFromPlaylistById.release(_stmt);
+    }
+  }
+
+  @Override
+  public void removeSongFromAllPlaylists(final long songId) {
+    __db.assertNotSuspendingTransaction();
+    final SupportSQLiteStatement _stmt = __preparedStmtOfRemoveSongFromAllPlaylists.acquire();
+    int _argIndex = 1;
+    _stmt.bindLong(_argIndex, songId);
+    try {
+      __db.beginTransaction();
+      try {
+        _stmt.executeUpdateDelete();
+        __db.setTransactionSuccessful();
+      } finally {
+        __db.endTransaction();
+      }
+    } finally {
+      __preparedStmtOfRemoveSongFromAllPlaylists.release(_stmt);
     }
   }
 
@@ -850,6 +879,54 @@ public final class PlaylistDao_Impl implements PlaylistDao {
         _tmpFavoriteOrder = _cursor.getLong(_cursorIndexOfFavoriteOrder);
         _item.setFavoriteOrder(_tmpFavoriteOrder);
         _result.add(_item);
+      }
+      return _result;
+    } finally {
+      _cursor.close();
+      _statement.release();
+    }
+  }
+
+  @Override
+  public List<Long> getPlaylistIdsForSong(final long songId) {
+    final String _sql = "SELECT DISTINCT playlistId FROM playlist_songs WHERE songId = ?";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
+    int _argIndex = 1;
+    _statement.bindLong(_argIndex, songId);
+    __db.assertNotSuspendingTransaction();
+    final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+    try {
+      final List<Long> _result = new ArrayList<Long>(_cursor.getCount());
+      while (_cursor.moveToNext()) {
+        final Long _item;
+        if (_cursor.isNull(0)) {
+          _item = null;
+        } else {
+          _item = _cursor.getLong(0);
+        }
+        _result.add(_item);
+      }
+      return _result;
+    } finally {
+      _cursor.close();
+      _statement.release();
+    }
+  }
+
+  @Override
+  public int getMaxPosition(final long playlistId) {
+    final String _sql = "SELECT COALESCE(MAX(position), -1) FROM playlist_songs WHERE playlistId = ?";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
+    int _argIndex = 1;
+    _statement.bindLong(_argIndex, playlistId);
+    __db.assertNotSuspendingTransaction();
+    final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+    try {
+      final int _result;
+      if (_cursor.moveToFirst()) {
+        _result = _cursor.getInt(0);
+      } else {
+        _result = 0;
       }
       return _result;
     } finally {

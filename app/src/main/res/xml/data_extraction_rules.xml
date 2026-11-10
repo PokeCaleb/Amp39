@@ -2,14 +2,12 @@
 <data-extraction-rules>
     <cloud-backup>
         <include domain="database" path="miku_player.db" />
-        <include domain="database" path="miku_player.db-shm" />
         <include domain="database" path="miku_player.db-wal" />
         <include domain="file" path="covers" />
         <include domain="sharedpref" path="amp39_prefs.xml" />
     </cloud-backup>
     <device-transfer>
         <include domain="database" path="miku_player.db" />
-        <include domain="database" path="miku_player.db-shm" />
         <include domain="database" path="miku_player.db-wal" />
         <include domain="file" path="covers" />
         <include domain="sharedpref" path="amp39_prefs.xml" />

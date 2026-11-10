@@ -54,6 +54,15 @@ interface PlaylistDao {
            "WHERE ps.playlistId = :playlistId ORDER BY ps.position ASC")
     List<Song> getSongsInPlaylistSync(long playlistId);
 
+    @Query("DELETE FROM playlist_songs WHERE songId = :songId")
+    void removeSongFromAllPlaylists(long songId);
+
+    @Query("SELECT DISTINCT playlistId FROM playlist_songs WHERE songId = :songId")
+    List<Long> getPlaylistIdsForSong(long songId);
+
+    @Query("SELECT COALESCE(MAX(position), -1) FROM playlist_songs WHERE playlistId = :playlistId")
+    int getMaxPosition(long playlistId);
+
     @Query("UPDATE playlist_songs SET position = :position WHERE playlistId = :playlistId AND songId = :songId")
     void updateSongPosition(long playlistId, long songId, int position);
 }

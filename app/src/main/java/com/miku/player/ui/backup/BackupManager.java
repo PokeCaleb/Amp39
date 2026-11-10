@@ -3,51 +3,73 @@ package com.miku.player.ui.backup;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 import com.miku.player.data.repository.AppDatabase;
 import com.miku.player.ui.main.MainActivity;
 import com.miku.player.utils.CoverSignatureManager;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Handles export (to Downloads via MediaStore or File) and import (from a user-picked URI).
+ * Exportación (a Descargas) e importación (desde un URI elegido por el usuario).
  *
- * Export format: a ZIP file at Downloads/Amp39/amp39_backup_YYYYMMDD_HHmmss.zip
- *   database/miku_player.db   — full Room database (WAL checkpointed)
- *   covers/<name>.jpg         — user-set cover images
- *   prefs.properties          — folder URI and name
+ * Formato del ZIP:
+ *   database/miku_player.db   — base Room completa (WAL ya volcado)
+ *   covers/<nombre>.jpg       — portadas
+ *   prefs.properties          — carpeta de música elegida
  *
- * Android 10+ uses MediaStore.Downloads (no WRITE permission needed).
- * Android 9-  uses File access (needs WRITE_EXTERNAL_STORAGE).
+ * La restauración es defensiva (el ZIP se trata como NO confiable):
+ *   1. Se extrae a una carpeta temporal con límites de tamaño y nombres validados
+ *      (sin rutas con "..", barras ni caracteres raros → no hay "zip slip").
+ *   2. Se valida la base: integridad, tablas esperadas y versión no mayor a la soportada.
+ *   3. Se sanean las rutas de portada de la base (solo apuntan a covers/ de la app).
+ *   4. Solo entonces se cierra la base real y se intercambian archivos, con respaldo
+ *      del estado anterior y reversión si algo falla.
+ * Si cualquier paso de 1-3 falla, la app queda exactamente como estaba.
  */
 public class BackupManager {
+
+    private static final String TAG = "BackupManager";
 
     static final String BACKUP_FOLDER    = "Amp39";
     private static final String DB_FILE  = "miku_player.db";
     private static final String COVERS   = "covers";
-    private static final String PREFS_F  = "prefs.properties";
     private static final String KEY_TS   = "last_backup_timestamp";
 
-    // ZIP entry names
     private static final String ZIP_DB      = "database/miku_player.db";
     private static final String ZIP_COVERS  = "covers/";
     private static final String ZIP_PREFS   = "prefs.properties";
+
+    /** Versión de esquema Room más alta que esta build sabe abrir (ver AppDatabase). */
+    private static final int MAX_DB_VERSION = 11;
+
+    private static final long MAX_DB_BYTES     = 1024L * 1024 * 1024;       // 1 GB
+    private static final long MAX_COVER_BYTES  = 30L * 1024 * 1024;         // 30 MB
+    private static final long MAX_PREFS_BYTES  = 64L * 1024;                // 64 KB
+    private static final long MAX_TOTAL_BYTES  = 2L * 1024 * 1024 * 1024;   // 2 GB
+    private static final int  MAX_ENTRIES      = 50_000;
+    private static final Pattern SAFE_NAME = Pattern.compile("^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$");
 
     private final Context ctx;
 
@@ -58,49 +80,42 @@ public class BackupManager {
     // ── Export ────────────────────────────────────────────────────────────────
 
     /**
-     * Creates a ZIP backup and saves it to Downloads/Amp39/.
-     * Returns the file name so it can be shown to the user.
+     * Crea un respaldo ZIP en Descargas/Amp39/ y devuelve el nombre del archivo.
+     * Si algo falla, el archivo parcial se elimina (no queda un ZIP corrupto).
      */
     public String export() throws IOException {
-        // 1. Checkpoint WAL
+        // Si el volcado del WAL falla se aborta: un .db sin -wal sería un respaldo viejo.
         checkpointWal();
 
         String fileName = "amp39_backup_"
-                + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date())
+                + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date())
                 + ".zip";
 
-        // 2. Open output stream to Downloads — method differs by API level
-        OutputStream out = openDownloadsOutputStream(fileName);
-
-        // 3. Write ZIP
-        ZipOutputStream zos = new ZipOutputStream(out);
+        DownloadTarget target = openDownloadTarget(fileName);
         try {
-            // Database
-            addFileToZip(zos, ctx.getDatabasePath(DB_FILE), ZIP_DB);
+            try (ZipOutputStream zos = new ZipOutputStream(target.out)) {
+                addFileToZip(zos, ctx.getDatabasePath(DB_FILE), ZIP_DB);
 
-            // Covers
-            File coversDir = new File(ctx.getFilesDir(), COVERS);
-            if (coversDir.exists()) {
+                File coversDir = new File(ctx.getFilesDir(), COVERS);
                 File[] covers = coversDir.listFiles();
                 if (covers != null) {
                     for (File cover : covers) {
-                        addFileToZip(zos, cover, ZIP_COVERS + cover.getName());
+                        if (cover.isFile() && !cover.getName().endsWith(".tmp")) {
+                            addFileToZip(zos, cover, ZIP_COVERS + cover.getName());
+                        }
                     }
                 }
+
+                zos.putNextEntry(new ZipEntry(ZIP_PREFS));
+                zos.write(buildPrefsBytes());
+                zos.closeEntry();
             }
-
-            // Preferences
-            byte[] prefsBytes = buildPrefsBytes();
-            zos.putNextEntry(new ZipEntry(ZIP_PREFS));
-            zos.write(prefsBytes);
-            zos.closeEntry();
-
-        } finally {
-            zos.finish();
-            zos.close();
+            target.commit();
+        } catch (IOException | RuntimeException e) {
+            target.discard();
+            throw e;
         }
 
-        // 4. Record timestamp
         String ts = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date());
         ctx.getSharedPreferences(MainActivity.PREFS, Context.MODE_PRIVATE)
                 .edit().putString(KEY_TS, ts).apply();
@@ -110,68 +125,267 @@ public class BackupManager {
 
     // ── Import ────────────────────────────────────────────────────────────────
 
-    /**
-     * Restores from a ZIP URI chosen by the user via the system file picker.
-     * Returns the number of cover images restored.
-     */
+    /** Restaura base + portadas + preferencias. Devuelve cuántas portadas se restauraron. */
     public int importFromUri(Uri zipUri) throws IOException {
+        return restore(zipUri, false);
+    }
+
+    /**
+     * Restaura solo la base (playlists, favoritos, orden), ignorando las portadas del
+     * respaldo; todas las rutas de portada se limpian para que el próximo escaneo las
+     * vuelva a extraer de los archivos de audio.
+     */
+    public void importFromUriListsOnly(Uri zipUri) throws IOException {
+        restore(zipUri, true);
+    }
+
+    private static class Staged {
+        File db;
+        File covers;           // carpeta temporal con las portadas extraídas
+        Properties prefs;
+        int coverCount;
+    }
+
+    private int restore(Uri zipUri, boolean listsOnly) throws IOException {
+        File stage = new File(ctx.getCacheDir(), "restore_stage");
+        deleteDir(stage);
+        if (!stage.mkdirs()) throw new IOException("No se pudo preparar la carpeta temporal.");
+
+        try {
+            // 1) Extraer y validar TODO fuera de los datos reales de la app.
+            Staged st = extractToStage(zipUri, stage, listsOnly);
+
+            File coversDir = new File(ctx.getFilesDir(), COVERS);
+            // 2) Validar la base y sanear rutas (aún sobre la copia temporal).
+            validateAndSanitizeDb(st, coversDir, listsOnly);
+
+            // 3) Intercambio con respaldo y reversión.
+            swapIn(st, stage, coversDir);
+
+            // 4) Preferencias (después de que todo salió bien).
+            applyPrefs(st.prefs);
+
+            // Descartar bitmaps cacheados por Glide de la instalación anterior.
+            CoverSignatureManager.getInstance(ctx).invalidateAll();
+            return st.coverCount;
+        } finally {
+            deleteDir(stage);
+        }
+    }
+
+    private Staged extractToStage(Uri zipUri, File stage, boolean listsOnly) throws IOException {
         InputStream rawIn = ctx.getContentResolver().openInputStream(zipUri);
         if (rawIn == null) throw new IOException("No se pudo abrir el archivo seleccionado.");
 
-        // Close DB BEFORE overwriting its file
+        Staged st = new Staged();
+        File stageCovers = new File(stage, "covers_new");
+        long[] total = {0};
+        int entries = 0;
+
+        try (ZipInputStream zis = new ZipInputStream(rawIn)) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (++entries > MAX_ENTRIES) throw new IOException("El respaldo tiene demasiados archivos.");
+                if (entry.isDirectory()) continue;
+                String name = entry.getName();
+
+                if (ZIP_DB.equals(name)) {
+                    File out = new File(stage, "restored.db");
+                    copyLimited(zis, out, MAX_DB_BYTES, total);
+                    st.db = out;
+                } else if (!listsOnly && name.startsWith(ZIP_COVERS)) {
+                    String coverName = name.substring(ZIP_COVERS.length());
+                    // Solo nombres planos y seguros: bloquea "..", barras y rutas absolutas.
+                    if (!SAFE_NAME.matcher(coverName).matches()) {
+                        Log.w(TAG, "Entrada de portada ignorada por nombre no válido: " + coverName);
+                        continue;
+                    }
+                    stageCovers.mkdirs();
+                    File out = new File(stageCovers, coverName);
+                    if (!isInside(stageCovers, out)) continue;
+                    copyLimited(zis, out, MAX_COVER_BYTES, total);
+                    st.coverCount++;
+                } else if (ZIP_PREFS.equals(name)) {
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    byte[] buf = new byte[4096];
+                    int n;
+                    long read = 0;
+                    while ((n = zis.read(buf)) != -1) {
+                        read += n;
+                        if (read > MAX_PREFS_BYTES) throw new IOException("prefs.properties demasiado grande.");
+                        bos.write(buf, 0, n);
+                    }
+                    Properties p = new Properties();
+                    p.load(new ByteArrayInputStream(bos.toByteArray()));
+                    st.prefs = p;
+                }
+                // Cualquier otra entrada se ignora.
+            }
+        }
+
+        if (st.db == null) {
+            throw new IOException("El archivo seleccionado no es un respaldo válido de Amp39.");
+        }
+        st.covers = stageCovers;
+        return st;
+    }
+
+    /**
+     * Abre la base temporal y comprueba: versión soportada, integridad y tablas
+     * esperadas. Después limpia las rutas de portada para que SOLO puedan apuntar a
+     * archivos dentro de covers/ de esta app (o a nada).
+     */
+    private void validateAndSanitizeDb(Staged st, File finalCoversDir, boolean listsOnly)
+            throws IOException {
+        SQLiteDatabase db = null;
+        try {
+            db = SQLiteDatabase.openDatabase(st.db.getAbsolutePath(), null,
+                    SQLiteDatabase.OPEN_READWRITE);
+
+            int version = db.getVersion();
+            if (version > MAX_DB_VERSION) {
+                throw new IOException("El respaldo fue creado con una versión más reciente de la "
+                        + "app. Actualiza la app para poder restaurarlo.");
+            }
+            if (version < 1) throw new IOException("El respaldo no contiene una base válida.");
+
+            try (Cursor c = db.rawQuery("PRAGMA integrity_check", null)) {
+                if (!c.moveToFirst() || !"ok".equalsIgnoreCase(c.getString(0))) {
+                    throw new IOException("La base de datos del respaldo está dañada.");
+                }
+            }
+            for (String table : new String[]{"songs", "playlists", "playlist_songs"}) {
+                try (Cursor c = db.rawQuery(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                        new String[]{table})) {
+                    if (!c.moveToFirst()) {
+                        throw new IOException("El respaldo no es válido (falta la tabla " + table + ").");
+                    }
+                }
+            }
+
+            db.beginTransaction();
+            try {
+                sanitizeCoverColumn(db, "songs", "customCoverPath", "cover_",
+                        st.covers, finalCoversDir, listsOnly);
+                sanitizeCoverColumn(db, "playlists", "coverPath", "playlist_cover_",
+                        st.covers, finalCoversDir, listsOnly);
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
+            }
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("No se pudo validar el respaldo: " + e.getMessage());
+        } finally {
+            if (db != null) try { db.close(); } catch (Exception ignored) {}
+        }
+    }
+
+    /**
+     * Cada ruta de portada se reemplaza por la ruta LOCAL esperada (<prefijo><id>.jpg
+     * dentro de covers/) si ese archivo vino en el respaldo; si no, queda en NULL.
+     * Así ninguna ruta de la base puede apuntar fuera de la carpeta de portadas.
+     */
+    private void sanitizeCoverColumn(SQLiteDatabase db, String table, String column,
+                                     String filePrefix, File stagedCovers, File finalCoversDir,
+                                     boolean listsOnly) {
+        try (Cursor c = db.rawQuery("SELECT id FROM " + table
+                + " WHERE " + column + " IS NOT NULL", null)) {
+            while (c.moveToNext()) {
+                long id = c.getLong(0);
+                String fileName = filePrefix + id + ".jpg";
+                ContentValues cv = new ContentValues();
+                if (!listsOnly && new File(stagedCovers, fileName).isFile()) {
+                    cv.put(column, new File(finalCoversDir, fileName).getAbsolutePath());
+                } else {
+                    cv.putNull(column);
+                }
+                db.update(table, cv, "id = ?", new String[]{String.valueOf(id)});
+            }
+        }
+    }
+
+    /** Intercambia los archivos reales por los validados; si algo falla, revierte. */
+    private void swapIn(Staged st, File stage, File coversDir) throws IOException {
+        File dbFile = ctx.getDatabasePath(DB_FILE);
+        File parent = dbFile.getParentFile();
+        if (parent != null) parent.mkdirs();
+
+        File dbBackup = new File(stage, "previous.db");
+        File oldCovers = new File(stage, "covers_old");
+        boolean hadDb = dbFile.exists();
+        boolean movedCovers = false;
+
+        // Ya validado todo: recién ahora se cierra la base real.
         AppDatabase.resetInstance();
 
-        File dbFile     = ctx.getDatabasePath(DB_FILE);
-        File coversDir  = new File(ctx.getFilesDir(), COVERS);
-        dbFile.getParentFile().mkdirs();
+        try {
+            if (hadDb) copyFile(dbFile, dbBackup);
 
-        // Clear old covers so removed ones don't linger
-        deleteDir(coversDir);
-        coversDir.mkdirs();
-
-        int restoredCovers = 0;
-        boolean dbRestored = false;
-
-        ZipInputStream zis = new ZipInputStream(rawIn);
-        ZipEntry entry;
-        while ((entry = zis.getNextEntry()) != null) {
-            String name = entry.getName();
-            if (ZIP_DB.equals(name)) {
-                writeStreamToFile(zis, dbFile);
-                // Remove stale WAL/SHM so Room opens the DB cleanly
-                new File(dbFile.getPath() + "-wal").delete();
-                new File(dbFile.getPath() + "-shm").delete();
-                dbRestored = true;
-            } else if (name.startsWith(ZIP_COVERS)) {
-                String coverName = name.substring(ZIP_COVERS.length());
-                if (!coverName.isEmpty()) {
-                    writeStreamToFile(zis, new File(coversDir, coverName));
-                    restoredCovers++;
+            if (coversDir.exists()) {
+                if (!coversDir.renameTo(oldCovers)) {
+                    throw new IOException("No se pudo apartar la carpeta de portadas actual.");
                 }
-            } else if (ZIP_PREFS.equals(name)) {
-                restorePrefsFromStream(zis);
+                movedCovers = true;
             }
-            zis.closeEntry();
+
+            // Escritura atómica de la base: temporal en la misma carpeta + renombrar.
+            File tmpDb = new File(parent, DB_FILE + ".restore");
+            copyFile(st.db, tmpDb);
+            new File(dbFile.getPath() + "-wal").delete();
+            new File(dbFile.getPath() + "-shm").delete();
+            if (dbFile.exists() && !dbFile.delete()) {
+                tmpDb.delete();
+                throw new IOException("No se pudo reemplazar la base de datos.");
+            }
+            if (!tmpDb.renameTo(dbFile)) {
+                tmpDb.delete();
+                throw new IOException("No se pudo escribir la base de datos restaurada.");
+            }
+
+            if (st.covers.isDirectory()) {
+                if (!st.covers.renameTo(coversDir)) {
+                    throw new IOException("No se pudo instalar la carpeta de portadas.");
+                }
+            } else {
+                coversDir.mkdirs();
+            }
+        } catch (IOException | RuntimeException e) {
+            Log.e(TAG, "Fallo al intercambiar archivos; revirtiendo", e);
+            try {
+                if (hadDb && dbBackup.exists()) {
+                    new File(dbFile.getPath() + "-wal").delete();
+                    new File(dbFile.getPath() + "-shm").delete();
+                    copyFile(dbBackup, dbFile);
+                }
+                if (movedCovers) {
+                    deleteDir(coversDir);
+                    oldCovers.renameTo(coversDir);
+                }
+            } catch (Exception rollbackError) {
+                Log.e(TAG, "La reversión también falló", rollbackError);
+            }
+            throw (e instanceof IOException) ? (IOException) e
+                    : new IOException("Error al restaurar: " + e.getMessage());
         }
-        zis.close();
+    }
 
-        if (!dbRestored) {
-            throw new IOException(
-                "El archivo seleccionado no es un respaldo válido de Amp39.");
+    private void applyPrefs(Properties props) {
+        if (props == null) return;
+        SharedPreferences.Editor ed = ctx
+                .getSharedPreferences(MainActivity.PREFS, Context.MODE_PRIVATE).edit();
+        String uri = props.getProperty(MainActivity.KEY_FOLDER_URI);
+        String name = props.getProperty(MainActivity.KEY_FOLDER_NAME);
+        // Solo se acepta un URI de documentos de tamaño razonable.
+        if (uri != null && uri.startsWith("content://") && uri.length() < 2048) {
+            ed.putString(MainActivity.KEY_FOLDER_URI, uri);
         }
-
-        // Fix any customCoverPath that was stored as an external URI (content://).
-        // After restore those URIs are invalid; remap them to local files if they exist.
-        fixCoverPathsAfterRestore(coversDir);
-        // Igual que arriba, pero para las portadas de PLAYLISTS.
-        fixPlaylistCoverPathsAfterRestore(coversDir);
-
-        // Bump the global Glide signature so ALL cached cover images are discarded.
-        // Without this, Glide serves stale cached bitmaps from the previous install
-        // even though the files on disk have been replaced by the restored ones.
-        CoverSignatureManager.getInstance(ctx).invalidateAll();
-
-        return restoredCovers;
+        if (name != null && name.length() < 256) {
+            ed.putString(MainActivity.KEY_FOLDER_NAME, name);
+        }
+        ed.apply();
     }
 
     // ── Info ──────────────────────────────────────────────────────────────────
@@ -181,106 +395,149 @@ public class BackupManager {
                 .getString(KEY_TS, null);
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    // ── Helpers de exportación ────────────────────────────────────────────────
 
-    /**
-     * Opens an OutputStream into Downloads/Amp39/<fileName>.
-     * Uses MediaStore on Android 10+ (API 29+) — no WRITE permission needed.
-     * Uses File directly on Android 9 and below.
-     */
-    private OutputStream openDownloadsOutputStream(String fileName) throws IOException {
+    /** Destino en Descargas; en Android 10+ el archivo queda "pendiente" hasta terminar. */
+    private class DownloadTarget {
+        OutputStream out;
+        Uri uri;     // Android 10+
+        File file;   // Android 9-
+
+        void commit() {
+            if (uri != null) {
+                try {
+                    ContentValues cv = new ContentValues();
+                    cv.put(MediaStore.Downloads.IS_PENDING, 0);
+                    ctx.getContentResolver().update(uri, cv, null, null);
+                } catch (Exception e) {
+                    Log.w(TAG, "No se pudo publicar el respaldo", e);
+                }
+            }
+        }
+
+        void discard() {
+            try { if (out != null) out.close(); } catch (Exception ignored) {}
+            try {
+                if (uri != null) ctx.getContentResolver().delete(uri, null, null);
+                else if (file != null) file.delete();
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private DownloadTarget openDownloadTarget(String fileName) throws IOException {
+        DownloadTarget t = new DownloadTarget();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10+ — Scoped Storage, use MediaStore
             ContentValues cv = new ContentValues();
             cv.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
             cv.put(MediaStore.Downloads.MIME_TYPE, "application/zip");
             cv.put(MediaStore.Downloads.RELATIVE_PATH,
                     Environment.DIRECTORY_DOWNLOADS + "/" + BACKUP_FOLDER);
-            Uri uri = ctx.getContentResolver()
-                    .insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
+            cv.put(MediaStore.Downloads.IS_PENDING, 1);
+            Uri uri = ctx.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
             if (uri == null) {
-                throw new IOException(
-                    "No se pudo crear el archivo en Descargas. "
-                    + "Verifica que el almacenamiento esté disponible.");
+                throw new IOException("No se pudo crear el archivo en Descargas. "
+                        + "Verifica que el almacenamiento esté disponible.");
             }
-            OutputStream os = ctx.getContentResolver().openOutputStream(uri);
-            if (os == null) throw new IOException("No se pudo abrir el archivo para escritura.");
-            return os;
+            t.uri = uri;
+            t.out = ctx.getContentResolver().openOutputStream(uri);
+            if (t.out == null) {
+                t.discard();
+                throw new IOException("No se pudo abrir el archivo para escritura.");
+            }
         } else {
-            // Android 9 and below — direct File access
             File dir = new File(
                     Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
                     BACKUP_FOLDER);
             if (!dir.exists() && !dir.mkdirs()) {
                 throw new IOException("No se pudo crear la carpeta Descargas/" + BACKUP_FOLDER);
             }
-            return new FileOutputStream(new File(dir, fileName));
+            t.file = new File(dir, fileName);
+            t.out = new FileOutputStream(t.file);
+        }
+        return t;
+    }
+
+    /** Vuelca el WAL al archivo principal; lanza IOException si no se pudo garantizar. */
+    private void checkpointWal() throws IOException {
+        try {
+            SupportSQLiteDatabase sdb = AppDatabase.getInstance(ctx)
+                    .getOpenHelper().getWritableDatabase();
+            // PRAGMA devuelve filas: se consulta con query() (execSQL puede rechazarlo).
+            try (Cursor c = sdb.query("PRAGMA wal_checkpoint(TRUNCATE)")) {
+                if (c.moveToFirst() && c.getInt(0) != 0) {
+                    throw new IOException("La base de datos está ocupada. Intenta de nuevo.");
+                }
+            }
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("No se pudo preparar la base de datos para el respaldo: "
+                    + e.getMessage());
         }
     }
 
-    private void checkpointWal() {
-        try {
-            AppDatabase.getInstance(ctx)
-                    .getOpenHelper().getWritableDatabase()
-                    .execSQL("PRAGMA wal_checkpoint(TRUNCATE)");
-        } catch (Exception ignored) {}
-    }
-
     private byte[] buildPrefsBytes() throws IOException {
-        SharedPreferences prefs = ctx.getSharedPreferences(
-                MainActivity.PREFS, Context.MODE_PRIVATE);
+        SharedPreferences prefs = ctx.getSharedPreferences(MainActivity.PREFS, Context.MODE_PRIVATE);
         Properties props = new Properties();
         String folderUri  = prefs.getString(MainActivity.KEY_FOLDER_URI,  "");
         String folderName = prefs.getString(MainActivity.KEY_FOLDER_NAME, "");
         if (folderUri  != null) props.setProperty(MainActivity.KEY_FOLDER_URI,  folderUri);
         if (folderName != null) props.setProperty(MainActivity.KEY_FOLDER_NAME, folderName);
-        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
         props.store(bos, "Amp39 backup");
         return bos.toByteArray();
     }
 
-    private void restorePrefsFromStream(InputStream in) throws IOException {
-        // Read without closing the parent ZipInputStream
-        byte[] buf = new byte[4096];
-        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-        int n;
-        while ((n = in.read(buf)) != -1) bos.write(buf, 0, n);
-
-        Properties props = new Properties();
-        props.load(new java.io.ByteArrayInputStream(bos.toByteArray()));
-
-        SharedPreferences.Editor ed = ctx
-                .getSharedPreferences(MainActivity.PREFS, Context.MODE_PRIVATE).edit();
-        if (props.containsKey(MainActivity.KEY_FOLDER_URI))
-            ed.putString(MainActivity.KEY_FOLDER_URI,
-                    props.getProperty(MainActivity.KEY_FOLDER_URI));
-        if (props.containsKey(MainActivity.KEY_FOLDER_NAME))
-            ed.putString(MainActivity.KEY_FOLDER_NAME,
-                    props.getProperty(MainActivity.KEY_FOLDER_NAME));
-        ed.apply();
-    }
+    // ── Helpers de archivos ───────────────────────────────────────────────────
 
     private static void addFileToZip(ZipOutputStream zos, File file, String entryName)
             throws IOException {
         if (file == null || !file.exists()) return;
         zos.putNextEntry(new ZipEntry(entryName));
         try (FileInputStream fis = new FileInputStream(file)) {
-            pipe(fis, zos);
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = fis.read(buf)) != -1) zos.write(buf, 0, n);
         }
         zos.closeEntry();
     }
 
-    private static void writeStreamToFile(InputStream src, File dest) throws IOException {
-        dest.getParentFile().mkdirs();
+    /** Copia con tope por archivo y tope total (protege contra ZIP bombs). */
+    private static void copyLimited(InputStream in, File dest, long maxBytes, long[] total)
+            throws IOException {
+        File parent = dest.getParentFile();
+        if (parent != null) parent.mkdirs();
+        long written = 0;
         try (FileOutputStream fos = new FileOutputStream(dest)) {
-            pipe(src, fos);
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) != -1) {
+                written += n;
+                total[0] += n;
+                if (written > maxBytes || total[0] > MAX_TOTAL_BYTES) {
+                    throw new IOException("El respaldo excede el tamaño permitido.");
+                }
+                fos.write(buf, 0, n);
+            }
         }
     }
 
-    private static void pipe(InputStream in, OutputStream out) throws IOException {
-        byte[] buf = new byte[8192];
-        int n;
-        while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+    private static void copyFile(File from, File to) throws IOException {
+        try (FileInputStream in = new FileInputStream(from);
+             FileOutputStream out = new FileOutputStream(to)) {
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+            out.getFD().sync();
+        }
+    }
+
+    private static boolean isInside(File dir, File f) {
+        try {
+            return f.getCanonicalPath().startsWith(dir.getCanonicalPath() + File.separator);
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     private static void deleteDir(File dir) {
@@ -292,178 +549,4 @@ public class BackupManager {
         }
         dir.delete();
     }
-    /**
-     * Mismo propósito que fixCoverPathsAfterRestore(), pero para la tabla "playlists"
-     * en vez de "songs". Remapea coverPath a playlist_cover_<id>.jpg si el archivo
-     * restaurado existe pero la ruta guardada en la DB ya no es válida (URI content://
-     * de una instalación anterior, o ruta absoluta que cambió de dispositivo).
-     */
-    private void fixPlaylistCoverPathsAfterRestore(File coversDir) {
-        try {
-            android.database.sqlite.SQLiteDatabase db =
-                android.database.sqlite.SQLiteDatabase.openDatabase(
-                    ctx.getDatabasePath(DB_FILE).getAbsolutePath(),
-                    null,
-                    android.database.sqlite.SQLiteDatabase.OPEN_READWRITE);
-
-            android.database.Cursor cursor = db.rawQuery(
-                "SELECT id, coverPath FROM playlists WHERE coverPath IS NOT NULL", null);
-
-            while (cursor.moveToNext()) {
-                long id = cursor.getLong(0);
-                String cp = cursor.getString(1);
-                if (cp == null) continue;
-
-                boolean needsFix = cp.startsWith("content://") || !new File(cp).exists();
-                if (needsFix) {
-                    File localFile = new File(coversDir, "playlist_cover_" + id + ".jpg");
-                    if (localFile.exists()) {
-                        android.content.ContentValues cv = new android.content.ContentValues();
-                        cv.put("coverPath", localFile.getAbsolutePath());
-                        db.update("playlists", cv, "id = ?", new String[]{String.valueOf(id)});
-                    }
-                }
-            }
-            cursor.close();
-            db.close();
-        } catch (Exception e) {
-            android.util.Log.e("BackupManager", "fixPlaylistCoverPathsAfterRestore failed", e);
-        }
-    }
-
-    /**
-     * After a restore, songs whose customCoverPath is a content:// URI (set before
-     * the copy-on-assign fix) will no longer be readable. This method scans the songs
-     * table and, for each such song, checks whether a local file cover_<id>.jpg exists
-     * in the restored covers dir and updates the path accordingly.
-     */
-    private void fixCoverPathsAfterRestore(File coversDir) {
-        try {
-            android.database.sqlite.SQLiteDatabase db =
-                android.database.sqlite.SQLiteDatabase.openDatabase(
-                    ctx.getDatabasePath(DB_FILE).getAbsolutePath(),
-                    null,
-                    android.database.sqlite.SQLiteDatabase.OPEN_READWRITE);
-
-            android.database.Cursor cursor = db.rawQuery(
-                "SELECT id, customCoverPath FROM songs WHERE customCoverPath IS NOT NULL", null);
-
-            while (cursor.moveToNext()) {
-                long id   = cursor.getLong(0);
-                String cp = cursor.getString(1);
-                if (cp == null) continue;
-
-                // If path is a content:// URI or doesn't exist as a file, try the local copy
-                boolean needsFix = cp.startsWith("content://") || !new java.io.File(cp).exists();
-                if (needsFix) {
-                    java.io.File localFile = new java.io.File(coversDir, "cover_" + id + ".jpg");
-                    if (localFile.exists()) {
-                        android.content.ContentValues cv = new android.content.ContentValues();
-                        cv.put("customCoverPath", localFile.getAbsolutePath());
-                        db.update("songs", cv, "id = ?",
-                                new String[]{String.valueOf(id)});
-                    }
-                }
-            }
-            cursor.close();
-            db.close();
-        } catch (Exception e) {
-            android.util.Log.e("BackupManager", "fixCoverPathsAfterRestore failed", e);
-        }
-    }
-
-    /**
-     * Imports only the database (playlists, favorites, song order) from the ZIP,
-     * ignoring any cover images in the backup.
-     *
-     * After restore, ALL customCoverPath values are cleared from the DB so that
-     * the next folder scan extracts covers fresh from the audio files themselves
-     * using MediaMetadataRetriever.
-     */
-    public void importFromUriListsOnly(Uri zipUri) throws IOException {
-        InputStream rawIn = ctx.getContentResolver().openInputStream(zipUri);
-        if (rawIn == null) throw new IOException("No se pudo abrir el archivo seleccionado.");
-
-        AppDatabase.resetInstance();
-
-        File dbFile = ctx.getDatabasePath(DB_FILE);
-        dbFile.getParentFile().mkdirs();
-
-        boolean dbRestored = false;
-
-        ZipInputStream zis = new ZipInputStream(rawIn);
-        ZipEntry entry;
-        while ((entry = zis.getNextEntry()) != null) {
-            String name = entry.getName();
-            if (ZIP_DB.equals(name)) {
-                writeStreamToFile(zis, dbFile);
-                new File(dbFile.getPath() + "-wal").delete();
-                new File(dbFile.getPath() + "-shm").delete();
-                dbRestored = true;
-            } else if (ZIP_PREFS.equals(name)) {
-                restorePrefsFromStream(zis);
-            }
-            // Intentionally skip covers/* entries
-            zis.closeEntry();
-        }
-        zis.close();
-
-        if (!dbRestored) {
-            throw new IOException(
-                "El archivo seleccionado no es un respaldo válido de Amp39.");
-        }
-
-        // Clear ALL customCoverPath values so the next scan extracts covers
-        // directly from the audio files using MediaMetadataRetriever.
-        clearAllCoverPaths();
-        // Mismo criterio para las portadas de playlists: ya no existen los archivos
-        // (se borraron abajo), así que se limpia la referencia para que la UI caiga
-        // en su portada por defecto en vez de un ícono roto.
-        clearAllPlaylistCoverPaths();
-
-        // Also delete any previously cached cover files so they get re-extracted
-        deleteDir(new File(ctx.getFilesDir(), COVERS));
-
-        // Invalidate all Glide signatures so stale cached covers are discarded
-        CoverSignatureManager.getInstance(ctx).invalidateAll();
-    }
-
-    /**
-     * Sets customCoverPath = NULL for every song in the database.
-     * Called after a lists-only restore so covers get re-extracted on next scan.
-     */
-    private void clearAllCoverPaths() {
-        try {
-            android.database.sqlite.SQLiteDatabase db =
-                android.database.sqlite.SQLiteDatabase.openDatabase(
-                    ctx.getDatabasePath(DB_FILE).getAbsolutePath(),
-                    null,
-                    android.database.sqlite.SQLiteDatabase.OPEN_READWRITE);
-            android.content.ContentValues cv = new android.content.ContentValues();
-            cv.putNull("customCoverPath");
-            db.update("songs", cv, null, null);
-            db.close();
-        } catch (Exception e) {
-            android.util.Log.e("BackupManager", "clearAllCoverPaths failed", e);
-        }
-    }
-
-    /** Igual que clearAllCoverPaths() pero para playlists.coverPath. */
-    private void clearAllPlaylistCoverPaths() {
-        try {
-            android.database.sqlite.SQLiteDatabase db =
-                android.database.sqlite.SQLiteDatabase.openDatabase(
-                    ctx.getDatabasePath(DB_FILE).getAbsolutePath(),
-                    null,
-                    android.database.sqlite.SQLiteDatabase.OPEN_READWRITE);
-            android.content.ContentValues cv = new android.content.ContentValues();
-            cv.putNull("coverPath");
-            db.update("playlists", cv, null, null);
-            db.close();
-        } catch (Exception e) {
-            android.util.Log.e("BackupManager", "clearAllPlaylistCoverPaths failed", e);
-        }
-    }
-
-
 }

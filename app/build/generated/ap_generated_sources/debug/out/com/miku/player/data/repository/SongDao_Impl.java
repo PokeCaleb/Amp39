@@ -494,7 +494,7 @@ public final class SongDao_Impl implements SongDao {
 
   @Override
   public LiveData<List<Song>> search(final String query) {
-    final String _sql = "SELECT * FROM songs WHERE title LIKE ? OR artist LIKE ? OR (customTitle IS NOT NULL AND customTitle LIKE ?) ORDER BY title ASC";
+    final String _sql = "SELECT * FROM songs WHERE title LIKE ? ESCAPE '\\' OR artist LIKE ? ESCAPE '\\' OR (customTitle IS NOT NULL AND customTitle LIKE ? ESCAPE '\\') ORDER BY title ASC";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 3);
     int _argIndex = 1;
     if (query == null) {
@@ -918,20 +918,44 @@ public final class SongDao_Impl implements SongDao {
   }
 
   @Override
-  public void deleteOrphanSongsNotIn(final List<Long> scannedIds) {
+  public List<Long> getRemovableSongIds() {
+    final String _sql = "SELECT id FROM songs WHERE isFavorite = 0 AND (customTitle IS NULL OR customTitle = '') AND id NOT IN (SELECT DISTINCT songId FROM playlist_songs)";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
+    __db.assertNotSuspendingTransaction();
+    final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+    try {
+      final List<Long> _result = new ArrayList<Long>(_cursor.getCount());
+      while (_cursor.moveToNext()) {
+        final Long _item;
+        if (_cursor.isNull(0)) {
+          _item = null;
+        } else {
+          _item = _cursor.getLong(0);
+        }
+        _result.add(_item);
+      }
+      return _result;
+    } finally {
+      _cursor.close();
+      _statement.release();
+    }
+  }
+
+  @Override
+  public void deleteByIds(final List<Long> ids) {
     __db.assertNotSuspendingTransaction();
     final StringBuilder _stringBuilder = StringUtil.newStringBuilder();
-    _stringBuilder.append("DELETE FROM songs WHERE id NOT IN (SELECT DISTINCT songId FROM playlist_songs) AND id NOT IN (");
-    final int _inputSize = scannedIds == null ? 1 : scannedIds.size();
+    _stringBuilder.append("DELETE FROM songs WHERE id IN (");
+    final int _inputSize = ids == null ? 1 : ids.size();
     StringUtil.appendPlaceholders(_stringBuilder, _inputSize);
     _stringBuilder.append(")");
     final String _sql = _stringBuilder.toString();
     final SupportSQLiteStatement _stmt = __db.compileStatement(_sql);
     int _argIndex = 1;
-    if (scannedIds == null) {
+    if (ids == null) {
       _stmt.bindNull(_argIndex);
     } else {
-      for (Long _item : scannedIds) {
+      for (Long _item : ids) {
         if (_item == null) {
           _stmt.bindNull(_argIndex);
         } else {

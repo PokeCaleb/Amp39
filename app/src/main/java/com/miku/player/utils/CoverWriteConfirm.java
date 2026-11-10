@@ -21,6 +21,28 @@ public final class CoverWriteConfirm {
         void onDecision(boolean writeToFile);
     }
 
+    /**
+     * Igual que {@link #ask(Context, String, DecisionCallback)}, pero además, si el usuario
+     * elige "Sí" y el sistema exige permiso para modificar el archivo (Android 11+), lo pide.
+     */
+    public static void ask(Context ctx, MediaStoreRequests requests,
+                           com.miku.player.data.model.Song song, DecisionCallback callback) {
+        ask(ctx, song.getPath(), writeToFile -> {
+            if (!writeToFile) {
+                callback.onDecision(false);
+                return;
+            }
+            requests.requestWrite(song, granted -> {
+                if (!granted) {
+                    android.widget.Toast.makeText(ctx.getApplicationContext(),
+                            "Sin permiso para modificar el archivo: la carátula se guardó solo en la app",
+                            android.widget.Toast.LENGTH_LONG).show();
+                }
+                callback.onDecision(granted);
+            });
+        });
+    }
+
     public static void ask(Context ctx, String songPath, DecisionCallback callback) {
         if (TagWriter.isOpus(songPath)) {
             callback.onDecision(false);

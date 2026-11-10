@@ -27,11 +27,26 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
 
+    private final ActivityResultLauncher<String> notificationPermission =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {});
+
     private final ActivityResultLauncher<Uri> folderPicker =
             registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), uri -> {
                 if (uri == null) return;
-                getContentResolver().takePersistableUriPermission(uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                // Lectura + ESCRITURA persistentes: escribir etiquetas (título/carátula)
+                // en los archivos necesita permiso de escritura incluso tras reiniciar.
+                try {
+                    getContentResolver().takePersistableUriPermission(uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                } catch (SecurityException e) {
+                    try {
+                        getContentResolver().takePersistableUriPermission(uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    } catch (SecurityException ignored) {}
+                }
+                // Carpeta nueva: las canciones "quitadas" de la app pueden volver a aparecer.
+                com.miku.player.data.repository.MusicRepository.getInstance(this).clearExcluded();
                 String name = uri.getLastPathSegment();
                 if (name != null && name.contains(":"))
                     name = name.substring(name.lastIndexOf(':') + 1);
@@ -57,6 +72,38 @@ public class MainActivity extends AppCompatActivity {
         setupButtons();
         observeMiniPlayer();
         updateFolderLabel();
+        requestNotificationPermissionIfNeeded();
+    }
+
+    /** Android 13+: sin este permiso la notificación de reproducción puede no mostrarse. */
+    private void requestNotificationPermissionIfNeeded() {
+        if (android.os.Build.VERSION.SDK_INT >= 33
+                && androidx.core.content.ContextCompat.checkSelfPermission(this,
+                        android.Manifest.permission.POST_NOTIFICATIONS)
+                        != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS);
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        if (item.getItemId() == R.id.action_shutdown) {
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.shutdown_title)
+                    .setMessage(R.string.shutdown_message)
+                    .setPositiveButton(R.string.shutdown_confirm,
+                            (d, w) -> PlayerManager.getInstance().shutdownApp(this))
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -123,7 +170,6 @@ public class MainActivity extends AppCompatActivity {
         pm.getIsPlaying().observe(this, playing ->
                 binding.btnMiniPlayPause.setImageResource(
                         playing ? R.drawable.ic_pause : R.drawable.ic_play));
-        startMiniProgressUpdater();
     }
 
     private final android.os.Handler miniProgressHandler =
@@ -150,6 +196,19 @@ public class MainActivity extends AppCompatActivity {
         String name = prefs.getString(KEY_FOLDER_NAME, null);
         binding.tvSelectedFolder.setText(name != null ? name
                 : "Sin carpeta seleccionada — toca para elegir");
+    }
+
+    // El sondeo del progreso solo corre mientras la pantalla es visible (onStart..onStop).
+    @Override
+    protected void onStart() {
+        super.onStart();
+        startMiniProgressUpdater();
+    }
+
+    @Override
+    protected void onStop() {
+        miniProgressHandler.removeCallbacks(miniProgressRunnable);
+        super.onStop();
     }
 
     @Override

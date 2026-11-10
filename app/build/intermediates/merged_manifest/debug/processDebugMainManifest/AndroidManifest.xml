@@ -9,7 +9,6 @@
         android:targetSdkVersion="34" />
 
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
@@ -36,8 +35,10 @@
         android:name="com.miku.player.MikuPlayerApp"
         android:allowBackup="true"
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:debuggable="true"
         android:extractNativeLibs="false"
+        android:fullBackupContent="@xml/backup_rules"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -84,6 +85,11 @@
             android:exported="false"
             android:parentActivityName="com.miku.player.ui.songs.SongsActivity" />
 
+        <!--
+             Exportado para que el sistema (notificación, pantalla de bloqueo, Bluetooth)
+             pueda controlar la sesión; MusicService valida cada controlador en
+             MediaSession.Callback.onConnect y rechaza apps no confiables.
+        -->
         <service
             android:name="com.miku.player.data.service.MusicService"
             android:exported="true"
@@ -93,15 +99,6 @@
             </intent-filter>
         </service>
 
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="com.miku.player.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true" >
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="com.miku.player.androidx-startup"

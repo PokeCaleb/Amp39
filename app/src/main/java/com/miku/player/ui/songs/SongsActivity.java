@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -34,6 +35,26 @@ import java.util.List;
 
 public class SongsActivity extends AppCompatActivity
         implements SongsAdapter.OnSongClickListener {
+    private final com.miku.player.ui.common.SongActions songActions =
+            new com.miku.player.ui.common.SongActions(this, new com.miku.player.ui.common.SongActions.Host() {
+                @Override public boolean isAlive() { return binding != null; }
+                @Override public android.view.View snackbarAnchor() { return binding.getRoot(); }
+                @Override public void deleteSong(com.miku.player.data.model.Song song, boolean deleteFile,
+                        com.miku.player.data.repository.MusicRepository.Callback<Boolean> cb) {
+                    viewModel.deleteSong(song, deleteFile, cb);
+                }
+                @Override public void updateCustomTitle(com.miku.player.data.model.Song song,
+                        String newTitle, boolean writeToFile) {
+                    viewModel.updateCustomTitle(song, newTitle, SongsActivity.this, writeToFile);
+                }
+                @Override public void updateSongCover(com.miku.player.data.model.Song song,
+                        String coverUri, boolean writeToFile,
+                        com.miku.player.data.repository.MusicRepository.CoverUpdateCallback cb) {
+                    viewModel.updateSongCover(song, coverUri, writeToFile, cb);
+                }
+                @Override public void invalidateCover(long songId) { adapter.invalidateCover(SongsActivity.this, songId); }
+            });
+
 
     // Sort modes
     private static final int SORT_AZ            = 0;
@@ -47,40 +68,6 @@ public class SongsActivity extends AppCompatActivity
     private List<Song> allSongs = new ArrayList<>();   // full unfiltered+sorted list
     private String currentQuery = "";
     private int currentSort = SORT_AZ;
-    private Song pendingCoverSong;
-
-    private final ActivityResultLauncher<String> coverPickerLauncher =
-            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
-                if (uri != null && pendingCoverSong != null) {
-                    try {
-                        getContentResolver().takePersistableUriPermission(uri,
-                                Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    } catch (Exception ignored) {}
-                    final com.miku.player.data.model.Song songRef = pendingCoverSong;
-
-                    // 1. Invalidar Glide inmediatamente para que la lista refleje el cambio visual
-                    adapter.invalidateCover(this, songRef.getId());
-
-                    // 2. Preguntar si además debe escribirse en el archivo original
-                    //    (se salta automáticamente para .opus).
-                    com.miku.player.utils.CoverWriteConfirm.ask(this, songRef.getPath(), writeToFile -> {
-                        // 3. Iniciar copia + DB. El callback notifica cuando la ruta local está lista,
-                        //    sin depender de un delay hardcodeado.
-                        viewModel.updateSongCover(songRef, uri.toString(), writeToFile,
-                                (songId, localPath) -> {
-                                    adapter.invalidateCover(this, songId);
-                                    com.miku.player.data.model.Song playing =
-                                            com.miku.player.utils.PlayerManager.getInstance()
-                                                    .getCurrentSongValue();
-                                    if (playing != null && playing.getId() == songId) {
-                                        songRef.setCustomCoverPath(localPath);
-                                        com.miku.player.utils.PlayerManager.getInstance()
-                                                .updateCurrentSongCover(songRef);
-                                    }
-                                });
-                    });
-                }
-            });
 
     private final ActivityResultLauncher<String> permissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
@@ -90,6 +77,7 @@ public class SongsActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        songActions.restoreState(savedInstanceState);
         binding = ActivitySongsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
@@ -276,6 +264,14 @@ public class SongsActivity extends AppCompatActivity
     }
 
     private void checkPermissionAndLoad() {
+        // Con una carpeta elegida (SAF) el acceso lo da el selector de carpetas: no se
+        // necesita el permiso de audio, así que no se bloquea la carga si fue denegado.
+        String folderUri = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE)
+                .getString(MainActivity.KEY_FOLDER_URI, null);
+        if (folderUri != null) {
+            loadSongs();
+            return;
+        }
         String perm = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 ? Manifest.permission.READ_MEDIA_AUDIO
                 : Manifest.permission.READ_EXTERNAL_STORAGE;
@@ -287,7 +283,24 @@ public class SongsActivity extends AppCompatActivity
     private void loadSongs() {
         SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
         String folderUri = prefs.getString(MainActivity.KEY_FOLDER_URI, null);
+        if (folderUri != null && !hasFolderPermission(folderUri)) {
+            // Antes la lista quedaba vacía sin explicación (p. ej. tras restaurar un respaldo
+            // o reinstalar). La biblioteca guardada se sigue mostrando; no se re-escanea.
+            Snackbar.make(binding.getRoot(),
+                    "Se perdió el acceso a la carpeta de música. Vuelve a elegirla desde el inicio.",
+                    Snackbar.LENGTH_INDEFINITE)
+                    .setAction("Entendido", v -> {}).show();
+            return;
+        }
         viewModel.scanFolder(folderUri);
+    }
+
+    private boolean hasFolderPermission(String folderUri) {
+        Uri target = Uri.parse(folderUri);
+        for (android.content.UriPermission p : getContentResolver().getPersistedUriPermissions()) {
+            if (p.getUri().equals(target) && p.isReadPermission()) return true;
+        }
+        return false;
     }
 
     @Override
@@ -322,90 +335,10 @@ public class SongsActivity extends AppCompatActivity
                 .setItems(options, (d, w) -> {
                     if (w == 0) AddToPlaylistBottomSheet.newInstance(song)
                             .show(getSupportFragmentManager(), "add");
-                    else if (w == 1) { pendingCoverSong = song; coverPickerLauncher.launch("image/*"); }
-                    else if (w == 2) showRenameDialog(song);
-                    else showDeleteSongDialog(song);
+                    else if (w == 1) songActions.pickCover(song);
+                    else if (w == 2) songActions.showRenameDialog(song);
+                    else songActions.showDeleteDialog(song);
                 }).show();
-    }
-
-    private void showDeleteSongDialog(Song song) {
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle("Eliminar canción")
-                .setMessage("¿Qué deseas hacer con \"" + song.getDisplayTitle() + "\"?")
-                .setPositiveButton("Eliminar archivo permanentemente", (d, w) -> {
-                    // Confirmar segunda vez antes de borrar el archivo físico
-                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                            .setTitle("⚠ Eliminar archivo")
-                            .setMessage("Esto borrará el archivo de audio del dispositivo. Esta acción no se puede deshacer.")
-                            .setPositiveButton("Eliminar permanentemente", (d2, w2) ->
-                                    performDeleteSong(song, true))
-                            .setNegativeButton("Cancelar", null)
-                            .show();
-                })
-                .setNeutralButton("Quitar de la app", (d, w) -> performDeleteSong(song, false))
-                .setNegativeButton("Cancelar", null)
-                .show();
-    }
-
-    private void performDeleteSong(Song song, boolean deleteFile) {
-        // Si la canción está reproduciéndose, detener reproducción
-        Song playing = PlayerManager.getInstance().getCurrentSongValue();
-        if (playing != null && playing.getId() == song.getId()) {
-            PlayerManager.getInstance().playNext();
-        }
-        viewModel.deleteSong(song, deleteFile, success -> {
-            String msg = deleteFile
-                    ? (success ? "Archivo eliminado" : "Eliminado de la app (no se pudo borrar el archivo)")
-                    : "Canción quitada de la app";
-            Snackbar.make(binding.getRoot(), msg, Snackbar.LENGTH_SHORT).show();
-        });
-    }
-
-    private void showRenameDialog(Song song) {
-        com.google.android.material.textfield.TextInputLayout inputLayout =
-                new com.google.android.material.textfield.TextInputLayout(this);
-        inputLayout.setHint("Nombre de la canción");
-        inputLayout.setBoxBackgroundMode(
-                com.google.android.material.textfield.TextInputLayout.BOX_BACKGROUND_OUTLINE);
-        android.widget.EditText editText =
-                new com.google.android.material.textfield.TextInputEditText(inputLayout.getContext());
-        editText.setText(song.getDisplayTitle());
-        editText.selectAll();
-        inputLayout.addView(editText);
-        int p = (int)(16 * getResources().getDisplayMetrics().density);
-        inputLayout.setPadding(p, p / 2, p, 0);
-
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle("Cambiar nombre")
-                .setView(inputLayout)
-                .setPositiveButton("Guardar", (d, w) -> {
-                    String newName = editText.getText() != null
-                            ? editText.getText().toString().trim() : "";
-                    if (newName.isEmpty() || newName.equals(song.getDisplayTitle())) return;
-                    viewModel.updateCustomTitle(song, newName, this);
-                    syncPlayerManagerTitle(song, newName);
-                })
-                .setNeutralButton("Restablecer original", (d, w) -> {
-                    viewModel.updateCustomTitle(song, null, this);
-                    syncPlayerManagerTitle(song, null);
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
-    }
-
-    /**
-     * Si la canción renombrada es la que se está reproduciendo ahora mismo,
-     * refresca de inmediato el MediaItem activo — si no, la notificación /
-     * pantalla de bloqueo se quedaba mostrando el nombre viejo hasta el
-     * siguiente cambio de canción.
-     */
-    private void syncPlayerManagerTitle(Song song, String newTitle) {
-        PlayerManager pm = PlayerManager.getInstance();
-        Song playing = pm.getCurrentSongValue();
-        if (playing != null && playing.getId() == song.getId()) {
-            song.setCustomTitle(newTitle);
-            pm.updateCurrentSongMetadata(song);
-        }
     }
 
     private void showPermissionDenied() {
@@ -442,7 +375,6 @@ public class SongsActivity extends AppCompatActivity
 
         // Barra de progreso (seek bar) del mini player — se llama "mini seek bar"
         // Se actualiza cada 500ms mientras la canción está activa.
-        startMiniPlayerProgressUpdater();
     }
 
     private final android.os.Handler miniProgressHandler = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -474,6 +406,25 @@ public class SongsActivity extends AppCompatActivity
         finish();
         ActivityTransitions.back(this);
         return true;
+    }
+
+    @Override
+    protected void onSaveInstanceState(android.os.Bundle outState) {
+        super.onSaveInstanceState(outState);
+        songActions.saveState(outState);
+    }
+
+    // El sondeo del progreso solo corre mientras la pantalla es visible (onStart..onStop).
+    @Override
+    protected void onStart() {
+        super.onStart();
+        startMiniPlayerProgressUpdater();
+    }
+
+    @Override
+    protected void onStop() {
+        miniProgressHandler.removeCallbacks(miniProgressRunnable);
+        super.onStop();
     }
 
     @Override

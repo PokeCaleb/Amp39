@@ -1,22 +1,35 @@
 package com.miku.player.data.repository;
 
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.os.Build;
+import android.util.Log;
+import android.widget.Toast;
 import androidx.lifecycle.LiveData;
 import com.miku.player.data.model.*;
+import com.miku.player.utils.MediaStoreAccess;
+import com.miku.player.utils.TagWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -24,25 +37,30 @@ import java.util.concurrent.Executors;
 
 public class MusicRepository {
 
-    private final AppDatabase db;
+    private static final String TAG = "MikuRepo";
+    private static final String REPO_PREFS = "repo_prefs";
+    private static final String KEY_EXCLUDED = "excluded_song_ids";
+    private static final long MAX_IMAGE_BYTES = 30L * 1024 * 1024;
+
     private final ContentResolver resolver;
-    private final android.content.Context appContext;
+    private final Context appContext;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ExecutorService fastExecutor = Executors.newSingleThreadExecutor();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private static volatile MusicRepository INSTANCE;
     private final File coversDir;
-    // IDs de canciones eliminadas por el usuario — el scan no las reinsertará
+    // IDs de canciones que el usuario quitó de la app — el escaneo no las reinserta.
+    // Se persisten para que no reaparezcan al reiniciar la app.
     private final Set<Long> excludedSongIds =
             Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private MusicRepository(Context ctx) {
         this.appContext = ctx.getApplicationContext();
-        this.db = AppDatabase.getInstance(ctx);
-        this.resolver = ctx.getContentResolver();
-        // Covers dir: internal files dir so Android Auto Backup includes it.
-        // getExternalFilesDir is wiped on uninstall; getFilesDir is backed up via backup_rules.xml.
-        this.coversDir = new File(ctx.getFilesDir(), "covers");
+        this.resolver = appContext.getContentResolver();
+        // Carpeta interna: incluida en el respaldo y borrada solo al desinstalar.
+        this.coversDir = new File(appContext.getFilesDir(), "covers");
         if (!coversDir.exists()) coversDir.mkdirs();
+        loadExcluded();
     }
 
     public static MusicRepository getInstance(Context ctx) {
@@ -54,88 +72,197 @@ public class MusicRepository {
         return INSTANCE;
     }
 
-    // ── Songs ──────────────────────────────────────────────────────────────────
+    /**
+     * Siempre se pide la instancia vigente: si la base se reinicia (restauración de
+     * respaldo) no se queda una referencia a una base ya cerrada.
+     */
+    private AppDatabase db() { return AppDatabase.getInstance(appContext); }
 
-    public LiveData<List<Song>> getAllSongs() { return db.songDao().getAllSongs(); }
+    // ── Exclusiones persistentes ───────────────────────────────────────────────
 
-    public LiveData<List<Song>> search(String query) {
-        return db.songDao().search("%" + query + "%");
+    private void loadExcluded() {
+        Set<String> saved = appContext.getSharedPreferences(REPO_PREFS, Context.MODE_PRIVATE)
+                .getStringSet(KEY_EXCLUDED, null);
+        if (saved == null) return;
+        for (String s : saved) {
+            try { excludedSongIds.add(Long.parseLong(s)); } catch (NumberFormatException ignored) {}
+        }
     }
 
-    private androidx.lifecycle.LiveData<java.util.List<Song>> favoritesLiveData;
-    public androidx.lifecycle.LiveData<java.util.List<Song>> getFavoriteSongs() {
-        if (favoritesLiveData == null) favoritesLiveData = db.songDao().getFavoriteSongs();
+    private synchronized void saveExcluded() {
+        Set<String> out = new HashSet<>();
+        for (Long id : excludedSongIds) out.add(String.valueOf(id));
+        appContext.getSharedPreferences(REPO_PREFS, Context.MODE_PRIVATE)
+                .edit().putStringSet(KEY_EXCLUDED, out).apply();
+    }
+
+    /** Se llama al elegir una carpeta nueva: las canciones quitadas vuelven a poder aparecer. */
+    public void clearExcluded() {
+        excludedSongIds.clear();
+        saveExcluded();
+    }
+
+    // ── Songs ──────────────────────────────────────────────────────────────────
+
+    public LiveData<List<Song>> getAllSongs() { return db().songDao().getAllSongs(); }
+
+    public LiveData<List<Song>> search(String query) {
+        // Se escapan % _ \ para que se busquen como texto literal (el DAO usa ESCAPE '\').
+        String escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        return db().songDao().search("%" + escaped + "%");
+    }
+
+    private LiveData<List<Song>> favoritesLiveData;
+    public LiveData<List<Song>> getFavoriteSongs() {
+        if (favoritesLiveData == null) favoritesLiveData = db().songDao().getFavoriteSongs();
         return favoritesLiveData;
     }
 
-    /**
-     * Explicitly sets a song's favorite state to the given value.
-     * Guarda el timestamp actual como favoriteOrder para preservar el orden de selección.
-     */
     public void setFavorite(Song song, boolean favorite) {
         final long songId = song.getId();
         fastExecutor.execute(() -> {
             long order = favorite ? System.currentTimeMillis() : 0L;
-            db.songDao().setFavoriteWithOrder(songId, favorite, order);
+            db().songDao().setFavoriteWithOrder(songId, favorite, order);
         });
     }
 
     public void toggleFavorite(Song song) {
-        final boolean newFav = !song.isFavorite();
-        final long songId = song.getId();
+        setFavorite(song, !song.isFavorite());
+    }
+
+    /** Lee una canción por id en segundo plano y entrega el resultado en el hilo principal. */
+    public void getSongByIdAsync(long id, Callback<Song> callback) {
         fastExecutor.execute(() -> {
-            long order = newFav ? System.currentTimeMillis() : 0L;
-            db.songDao().setFavoriteWithOrder(songId, newFav, order);
+            Song s = db().songDao().getSongById(id);
+            mainHandler.post(() -> callback.onResult(s));
         });
+    }
+
+    /**
+     * Lee varias canciones por id (en el mismo orden) en segundo plano. Entrega null si
+     * alguna no existe en la base. El callback llega en el hilo principal.
+     */
+    public void getSongsByIdsAsync(List<Long> ids, Callback<List<Song>> callback) {
+        fastExecutor.execute(() -> {
+            List<Song> out = new ArrayList<>();
+            try {
+                for (Long id : ids) {
+                    Song s = db().songDao().getSongById(id);
+                    if (s == null) { out = null; break; }
+                    out.add(s);
+                }
+            } catch (Exception e) {
+                out = null;
+            }
+            final List<Song> result = out;
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Resultado de un escaneo de carpeta SAF. */
+    private static class SafScan {
+        final List<Song> songs = new ArrayList<>();
+        // id -> {nombre de archivo, documentId} para enriquecer con MediaStore
+        final Map<Long, String[]> meta = new HashMap<>();
+        boolean complete = true;
     }
 
     public void scanFolder(String folderUriStr, Callback<List<Song>> callback) {
         executor.execute(() -> {
-            List<Song> songs = folderUriStr != null
-                    ? scanSAFFolder(folderUriStr)
-                    : scanMediaStore();
+            final boolean isSaf = folderUriStr != null;
+            List<Song> songs;
+            Map<Long, String[]> meta = null;
+            boolean complete;
 
+            if (isSaf) {
+                SafScan scan = scanSAFFolder(folderUriStr);
+                songs = scan.songs;
+                meta = scan.meta;
+                complete = scan.complete;
+            } else {
+                boolean[] ok = {true};
+                songs = scanMediaStore(ok);
+                complete = ok[0];
+            }
+
+            // ── Fase 1 (sin transacción): lecturas lentas — metadatos y portadas ──
+            List<Song> toInsert = new ArrayList<>();
+            List<Song> toUpdate = new ArrayList<>();
             for (Song newSong : songs) {
-                // No reinsertar canciones que el usuario eliminó explícitamente
                 if (excludedSongIds.contains(newSong.getId())) continue;
 
-                Song existing = db.songDao().getSongById(newSong.getId());
+                Song existing = db().songDao().getSongById(newSong.getId());
+                String[] m = meta != null ? meta.get(newSong.getId()) : null;
+
                 if (existing != null) {
                     newSong.setFavorite(existing.isFavorite());
                     newSong.setFavoriteOrder(existing.getFavoriteOrder());
                     newSong.setCustomTitle(existing.getCustomTitle());
-                    // FIX "Recientes": preservar la fecha de agregado ORIGINAL. Antes se
-                    // sobreescribía con newSong.getDateAdded() (la fecha de modificación
-                    // ACTUAL del archivo en este escaneo), así que cualquier cosa que
-                    // reescribiera el archivo — como cambiar la carátula o el nombre,
-                    // que reescriben el archivo completo vía TagWriter y por lo tanto
-                    // actualizan su mtime — hacía que la canción saltara al principio de
-                    // "Recientes" en el siguiente escaneo, aunque no se hubiera "agregado"
-                    // de nuevo, solo editado.
+                    // Preservar la fecha de agregado ORIGINAL; dateModified sí se actualiza.
                     newSong.setDateAdded(existing.getDateAdded());
-                    // dateModified SÍ se actualiza siempre con el valor fresco de este
-                    // escaneo (newSong ya lo trae bien poblado) — es justamente lo que
-                    // se busca: reflejar la fecha real de modificación del archivo.
+
+                    if (isSaf) {
+                        boolean unchanged = existing.getDuration() > 0
+                                && existing.getDateModified() == newSong.getDateModified();
+                        if (unchanged) {
+                            // El archivo no cambió: reutilizar metadatos ya obtenidos.
+                            newSong.setTitle(existing.getTitle());
+                            newSong.setArtist(existing.getArtist());
+                            newSong.setAlbum(existing.getAlbum());
+                            newSong.setDuration(existing.getDuration());
+                        } else if (m != null) {
+                            enrichFromMediaStore(newSong, m[0], m[1]);
+                        }
+                    }
+
                     String existingCover = existing.getCustomCoverPath();
                     if (existingCover != null && !existingCover.isEmpty()
-                            && new File(existingCover).exists()) {
+                            && new File(existingCover).length() > 0) {
                         newSong.setCustomCoverPath(existingCover);
                     } else {
-                        String cachedCover = cacheEmbeddedCover(newSong);
-                        newSong.setCustomCoverPath(cachedCover);
+                        newSong.setCustomCoverPath(cacheEmbeddedCover(newSong));
                     }
-                    db.songDao().update(newSong);
+                    toUpdate.add(newSong);
                 } else {
+                    if (isSaf && m != null) enrichFromMediaStore(newSong, m[0], m[1]);
                     String cachedCover = cacheEmbeddedCover(newSong);
                     if (cachedCover != null) newSong.setCustomCoverPath(cachedCover);
-                    db.songDao().insert(newSong);
+                    toInsert.add(newSong);
                 }
             }
 
-            if (!songs.isEmpty()) {
-                List<Long> scannedIds = new ArrayList<>();
-                for (Song s : songs) scannedIds.add(s.getId());
-                db.songDao().deleteOrphanSongsNotIn(scannedIds);
+            // ── Fase 2: todas las escrituras en UNA transacción (un solo refresco de UI) ──
+            final boolean doCleanup = complete && !songs.isEmpty();
+            final List<Long> removedIds = new ArrayList<>();
+            try {
+                db().runInTransaction(() -> {
+                    SongDao dao = db().songDao();
+                    for (Song s : toInsert) dao.insert(s);
+                    for (Song s : toUpdate) dao.update(s);
+
+                    // Limpieza SOLO si el escaneo terminó completo: un listado parcial
+                    // (error de SAF, tarjeta SD desmontada) no debe borrar la biblioteca.
+                    if (doCleanup) {
+                        Set<Long> scanned = new HashSet<>();
+                        for (Song s : songs) scanned.add(s.getId());
+                        List<Long> toDelete = new ArrayList<>();
+                        for (Long id : dao.getRemovableSongIds()) {
+                            if (!scanned.contains(id)) toDelete.add(id);
+                        }
+                        // Por lotes: evita el límite de variables de SQLite en listas grandes.
+                        for (int i = 0; i < toDelete.size(); i += 500) {
+                            dao.deleteByIds(toDelete.subList(i, Math.min(i + 500, toDelete.size())));
+                        }
+                        removedIds.addAll(toDelete);
+                    }
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "Error guardando el escaneo", e);
+            }
+
+            for (Long id : removedIds) {
+                File cover = new File(coversDir, "cover_" + id + ".jpg");
+                if (cover.exists()) cover.delete();
             }
 
             if (callback != null) callback.onResult(songs);
@@ -143,35 +270,26 @@ public class MusicRepository {
     }
 
     /**
-     * Extracts and caches the embedded album art of a song.
-     *
-     * Strategy (in order):
-     * 1. MediaMetadataRetriever on the audio file URI — works for ANY file,
-     *    whether scanned via MediaStore or SAF folder picker. This reads the
-     *    ID3/FLAC/Vorbis artwork tag directly from the file bytes.
-     * 2. MediaStore content URI (content://media/external/audio/albumart/<id>)
-     *    as fallback for MediaStore-indexed files when embedded tag reading fails.
-     *
-     * Result is saved to filesDir/covers/cover_<id>.jpg and that path is returned.
-     * Returns null if no artwork is found in the file.
+     * Extrae y cachea la carátula embebida de una canción en filesDir/covers/cover_<id>.jpg.
+     * Devuelve la ruta, o null si no hay carátula. Decodifica con submuestreo y captura
+     * OutOfMemoryError para que una imagen enorme no tire la app durante el escaneo.
      */
     private String cacheEmbeddedCover(Song song) {
         try {
             File outFile = new File(coversDir, "cover_" + song.getId() + ".jpg");
-            // If we already cached it before, return immediately
-            if (outFile.exists()) return outFile.getAbsolutePath();
+            if (outFile.exists()) {
+                if (outFile.length() > 0) return outFile.getAbsolutePath();
+                outFile.delete(); // archivo vacío/corrupto de un intento anterior
+            }
 
             byte[] artBytes = null;
 
-            // Strategy 1: read embedded tag directly from the audio file
             android.media.MediaMetadataRetriever mmr = new android.media.MediaMetadataRetriever();
             try {
                 Uri fileUri = Uri.parse(song.getPath());
                 String scheme = fileUri.getScheme();
                 if (scheme != null && (scheme.equals("content") || scheme.equals("file"))) {
-                    // FIX: guardar el PFD para cerrarlo explícitamente y evitar fuga de recursos
-                    android.os.ParcelFileDescriptor pfd =
-                            resolver.openFileDescriptor(fileUri, "r");
+                    android.os.ParcelFileDescriptor pfd = resolver.openFileDescriptor(fileUri, "r");
                     if (pfd != null) {
                         try {
                             mmr.setDataSource(pfd.getFileDescriptor());
@@ -180,31 +298,29 @@ public class MusicRepository {
                         }
                     }
                 } else {
-                    // Absolute file path
                     mmr.setDataSource(song.getPath());
                 }
-                artBytes = mmr.getEmbeddedPicture(); // null if no embedded art
+                artBytes = mmr.getEmbeddedPicture();
             } catch (Exception ignored) {
             } finally {
                 try { mmr.release(); } catch (Exception ignored2) {}
             }
 
-            // Strategy 2: MediaStore album art URI (works for MediaStore-indexed songs)
-            // FIX: la URI correcta usa albumId, no el id de la canción
             if (artBytes == null) {
                 try {
                     long albumId = resolveAlbumId(song);
                     if (albumId != -1) {
-                        Uri msArt = Uri.parse(
-                                "content://media/external/audio/albumart/" + albumId);
+                        Uri msArt = Uri.parse("content://media/external/audio/albumart/" + albumId);
                         try (InputStream is = resolver.openInputStream(msArt)) {
                             if (is != null) {
-                                java.io.ByteArrayOutputStream bos =
-                                        new java.io.ByteArrayOutputStream();
+                                java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
                                 byte[] buf = new byte[8192];
                                 int n;
-                                while ((n = is.read(buf)) != -1) bos.write(buf, 0, n);
-                                artBytes = bos.toByteArray();
+                                while ((n = is.read(buf)) != -1) {
+                                    bos.write(buf, 0, n);
+                                    if (bos.size() > MAX_IMAGE_BYTES) { bos = null; break; }
+                                }
+                                if (bos != null) artBytes = bos.toByteArray();
                             }
                         }
                     }
@@ -213,47 +329,45 @@ public class MusicRepository {
 
             if (artBytes == null || artBytes.length == 0) return null;
 
-            // Decode, scale to 512x512 max (safe for notifications), write to disk
-            Bitmap bmp = BitmapFactory.decodeByteArray(artBytes, 0, artBytes.length);
+            // 1) Leer solo dimensiones; 2) decodificar con submuestreo (máx. ~2048 px).
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(artBytes, 0, artBytes.length, bounds);
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+
+            int sample = 1;
+            while (Math.max(bounds.outWidth, bounds.outHeight) / sample > 2048) sample *= 2;
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = sample;
+            Bitmap bmp = BitmapFactory.decodeByteArray(artBytes, 0, artBytes.length, opts);
             if (bmp == null) return null;
 
-            // Scale down if larger than 1024px en su lado más largo, para evitar
-            // problemas de memoria — pero MANTENIENDO el aspect ratio original
-            // del bitmap. Antes esto forzaba siempre 512×512 (createScaledBitmap
-            // con ancho Y alto fijos), lo que aplastaba cualquier carátula no
-            // cuadrada (ej. miniaturas 16:9 de YouTube/Seal) a un cuadrado
-            // perfecto ANTES de que el reproductor pudiera mostrar su forma
-            // real — por eso el tamaño dinámico de la carátula en PlayerActivity
-            // nunca se notaba: el archivo cacheado ya llegaba cuadrado sin
-            // importar la fuente original.
-            //
-            // Límite subido de 512 a 1024: en el reproductor grande la carátula
-            // se estira a casi todo el ancho de pantalla, así que 512px se veía
-            // ligeramente borroso por upscaling en pantallas de densidad alta.
-            // 1024px es nítido incluso en pantallas grandes y sigue siendo
-            // seguro en memoria (1024×1024 ARGB_8888 ≈ 4MB por bitmap, liberado
-            // apenas se comprime a disco). Las notificaciones no se ven
-            // afectadas: Android las reescala internamente a su propio tamaño.
+            // Límite de 1024 px en el lado largo, conservando la proporción original.
             int maxDim = Math.max(bmp.getWidth(), bmp.getHeight());
             if (maxDim > 1024) {
                 float scale = 1024f / maxDim;
-                int newWidth = Math.round(bmp.getWidth() * scale);
-                int newHeight = Math.round(bmp.getHeight() * scale);
-                Bitmap scaled = Bitmap.createScaledBitmap(bmp, newWidth, newHeight, true);
+                Bitmap scaled = Bitmap.createScaledBitmap(bmp,
+                        Math.round(bmp.getWidth() * scale),
+                        Math.round(bmp.getHeight() * scale), true);
                 bmp.recycle();
                 bmp = scaled;
             }
 
-            try (FileOutputStream fos = new FileOutputStream(outFile)) {
-                // Calidad subida de 90 a 95: menos artefactos de compresión JPEG,
-                // notorio sobre todo en degradados suaves de las carátulas.
-                bmp.compress(Bitmap.CompressFormat.JPEG, 95, fos);
+            // Se escribe a un temporal y se renombra: nunca queda un .jpg a medias.
+            File tmp = new File(coversDir, outFile.getName() + ".tmp");
+            boolean ok;
+            try (FileOutputStream fos = new FileOutputStream(tmp)) {
+                ok = bmp.compress(Bitmap.CompressFormat.JPEG, 95, fos);
             }
             bmp.recycle();
+            if (!ok || tmp.length() == 0 || !tmp.renameTo(outFile)) {
+                tmp.delete();
+                return null;
+            }
             return outFile.getAbsolutePath();
 
-        } catch (Exception e) {
-            android.util.Log.w("MikuRepo", "cacheEmbeddedCover failed for " + song.getTitle(), e);
+        } catch (Exception | OutOfMemoryError e) {
+            Log.w(TAG, "cacheEmbeddedCover failed for " + song.getTitle(), e);
             return null;
         }
     }
@@ -261,95 +375,125 @@ public class MusicRepository {
     public void scanFolder(String folderUriStr) { scanFolder(folderUriStr, null); }
     public void scanMedia(Callback<List<Song>> callback) { scanFolder(null, callback); }
 
-    private List<Song> scanSAFFolder(String folderUriStr) {
-        List<Song> songs = new ArrayList<>();
+    private SafScan scanSAFFolder(String folderUriStr) {
+        SafScan scan = new SafScan();
         try {
             Uri folderUri = Uri.parse(folderUriStr);
-            // FIX: escaneo recursivo para incluir subcarpetas
-            scanSAFDirectory(folderUri, DocumentsContract.getTreeDocumentId(folderUri), songs);
-            enrichFromMediaStore(songs);
+            scanSAFDirectory(folderUri, DocumentsContract.getTreeDocumentId(folderUri), scan);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.w(TAG, "scanSAFFolder error", e);
+            scan.complete = false;
         }
-        return songs;
+        return scan;
+    }
+
+    /** ID estable (mismo cálculo de siempre, para no invalidar datos ya guardados). */
+    private static long idForDoc(String docId) {
+        return Math.abs((long) docId.hashCode() ^ ((long) docId.length() << 32));
+    }
+
+    /** ID alternativo de 64 bits (FNV-1a) para resolver colisiones del ID legado. */
+    private static long altIdForDoc(String docId) {
+        long h = 0xcbf29ce484222325L;
+        for (int i = 0; i < docId.length(); i++) {
+            h ^= docId.charAt(i);
+            h *= 0x100000001b3L;
+        }
+        return h & Long.MAX_VALUE;
     }
 
     /** Escanea recursivamente un directorio SAF incluyendo todos sus subdirectorios. */
-    private void scanSAFDirectory(Uri treeUri, String parentDocId, List<Song> songs) {
+    private void scanSAFDirectory(Uri treeUri, String parentDocId, SafScan scan) {
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentDocId);
         String[] projection = {
                 DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                 DocumentsContract.Document.COLUMN_DISPLAY_NAME,
                 DocumentsContract.Document.COLUMN_MIME_TYPE,
-                // FIX "Recientes": fecha real de última modificación del archivo (en ms),
-                // la misma señal de recencia que MediaStore.DATE_ADDED usa para el otro
-                // camino de escaneo. Antes se usaba System.currentTimeMillis() — la hora
-                // del ESCANEO, no del archivo — así que cada vez que se reescaneaba la
-                // carpeta (por ejemplo, al reabrir la app), TODAS las canciones quedaban
-                // con timestamps casi idénticos, sin importar cuándo se agregaron de verdad.
                 DocumentsContract.Document.COLUMN_LAST_MODIFIED,
         };
         try (Cursor cursor = resolver.query(childrenUri, projection, null, null, null)) {
-            if (cursor == null) return;
+            if (cursor == null) { scan.complete = false; return; }
             while (cursor.moveToNext()) {
-                String mimeType   = cursor.getString(2);
-                String name       = cursor.getString(1);
                 String docId      = cursor.getString(0);
+                String name       = cursor.getString(1);
+                String mimeType   = cursor.getString(2);
                 long lastModified = cursor.isNull(3) ? 0L : cursor.getLong(3);
-                if (mimeType == null) continue;
+                if (mimeType == null || docId == null || name == null) continue;
 
                 if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
-                    // Subdirectorio: descender recursivamente
-                    scanSAFDirectory(treeUri, docId, songs);
+                    scanSAFDirectory(treeUri, docId, scan);
                 } else if (mimeType.startsWith("audio/")) {
                     Uri fileUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId);
                     String title = name.contains(".") ? name.substring(0, name.lastIndexOf('.')) : name;
-                    // FIX: usar Long.parseUnsignedLong como hash de 64 bits para reducir
-                    // colisiones. String.hashCode() es int (32 bits) y Math.abs puede
-                    // devolver negativo para Integer.MIN_VALUE.
-                    long stableId = Math.abs((long) docId.hashCode()
-                            ^ ((long) docId.length() << 32));
-                    // Si el proveedor SAF no reporta LAST_MODIFIED (algunos no lo hacen),
-                    // caemos a "ahora" solo como último recurso para esa canción puntual.
+
+                    long stableId = idForDoc(docId);
+                    String[] owner = scan.meta.get(stableId);
+                    if (owner != null && !owner[1].equals(docId)) {
+                        // Colisión del ID de 32 bits: se usa un ID alternativo determinista.
+                        stableId = altIdForDoc(docId);
+                        String[] owner2 = scan.meta.get(stableId);
+                        if (owner2 != null && !owner2[1].equals(docId)) {
+                            Log.w(TAG, "Colisión de ID irresoluble, se omite: " + name);
+                            continue;
+                        }
+                    }
+
                     long dateAdded = lastModified > 0 ? lastModified : System.currentTimeMillis();
                     Song s = new Song(stableId, title, "Artista desconocido",
                             "Álbum desconocido", 0L, fileUri.toString(), dateAdded);
-                    // dateModified SIEMPRE refleja la fecha real actual del archivo —
-                    // a diferencia de dateAdded, esta se actualiza en cada escaneo.
                     s.setDateModified(dateAdded);
-                    songs.add(s);
+                    scan.songs.add(s);
+                    scan.meta.put(stableId, new String[]{name, docId});
                 }
             }
         } catch (Exception e) {
-            android.util.Log.w("MikuRepo", "scanSAFDirectory error en " + parentDocId, e);
+            Log.w(TAG, "scanSAFDirectory error en " + parentDocId, e);
+            scan.complete = false;
         }
     }
 
-    private void enrichFromMediaStore(List<Song> songs) {
-        for (Song s : songs) {
+    /**
+     * Busca la canción en MediaStore por nombre de archivo EXACTO (y carpeta relativa
+     * cuando es posible). Antes usaba LIKE '%título%' y tomaba la primera fila, lo que
+     * podía asignar los metadatos de OTRA canción.
+     */
+    private void enrichFromMediaStore(Song s, String displayName, String docId) {
+        if (displayName == null) return;
+        try {
             String[] proj = {
-                    MediaStore.Audio.Media._ID,
                     MediaStore.Audio.Media.TITLE,
                     MediaStore.Audio.Media.ARTIST,
                     MediaStore.Audio.Media.ALBUM,
                     MediaStore.Audio.Media.DURATION
             };
-            String displayName = s.getTitle();
-            String sel = MediaStore.Audio.Media.DISPLAY_NAME + " LIKE ?";
-            try (Cursor c = resolver.query(
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    proj, sel, new String[]{"%" + displayName + "%"}, null)) {
-                if (c != null && c.moveToFirst()) {
-                    s.setTitle(c.getString(1));
-                    s.setArtist(c.getString(2));
-                    s.setAlbum(c.getString(3));
-                    s.setDuration(c.getLong(4));
+            StringBuilder sel = new StringBuilder(MediaStore.Audio.Media.DISPLAY_NAME + " = ?");
+            List<String> args = new ArrayList<>();
+            args.add(displayName);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && docId != null) {
+                int colon = docId.indexOf(':');
+                int slash = docId.lastIndexOf('/');
+                if (colon >= 0 && slash > colon) {
+                    sel.append(" AND ").append(MediaStore.MediaColumns.RELATIVE_PATH).append(" = ?");
+                    args.add(docId.substring(colon + 1, slash + 1));
                 }
-            } catch (Exception ignored) {}
-        }
+            }
+            Uri collection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    ? MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                    : MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            try (Cursor c = resolver.query(collection, proj, sel.toString(),
+                    args.toArray(new String[0]), null)) {
+                if (c != null && c.moveToFirst()) {
+                    String t = c.getString(0), ar = c.getString(1), al = c.getString(2);
+                    if (t != null && !t.isEmpty()) s.setTitle(t);
+                    if (ar != null && !"<unknown>".equals(ar)) s.setArtist(ar);
+                    if (al != null && !al.isEmpty()) s.setAlbum(al);
+                    s.setDuration(c.getLong(3));
+                }
+            }
+        } catch (Exception ignored) {}
     }
 
-    private List<Song> scanMediaStore() {
+    private List<Song> scanMediaStore(boolean[] ok) {
         List<Song> songs = new ArrayList<>();
         Uri collection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
                 ? MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
@@ -366,7 +510,7 @@ public class MusicRepository {
 
         try (Cursor cursor = resolver.query(collection, projection, selection, null,
                 MediaStore.Audio.Media.TITLE + " ASC")) {
-            if (cursor == null) return songs;
+            if (cursor == null) { ok[0] = false; return songs; }
             int idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
             int titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
             int artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
@@ -378,213 +522,260 @@ public class MusicRepository {
 
             while (cursor.moveToNext()) {
                 String artist = cursor.getString(artistCol);
-                if ("<unknown>".equals(artist)) artist = "Artista desconocido";
+                if (artist == null || "<unknown>".equals(artist)) artist = "Artista desconocido";
+                String path = cursor.getString(dataCol);
+                if (path == null) continue;
                 Song s = new Song(cursor.getLong(idCol), cursor.getString(titleCol),
                         artist, cursor.getString(albumCol),
-                        cursor.getLong(durCol), cursor.getString(dataCol),
-                        cursor.getLong(dateCol));
-                // dateModified viene de la columna dedicada de MediaStore — la propia
-                // documentación de Android dice que esta es "for internal use by the
-                // media scanner", exactamente lo que necesitamos aquí.
+                        cursor.getLong(durCol), path, cursor.getLong(dateCol));
                 s.setDateModified(cursor.getLong(dateModCol));
                 songs.add(s);
             }
+        } catch (Exception e) {
+            Log.w(TAG, "scanMediaStore error", e);
+            ok[0] = false;
         }
         return songs;
     }
 
+    // ── Rutas seguras ──────────────────────────────────────────────────────────
+
+    /** true si {@code f} está dentro de {@code dir} (comparando rutas canónicas). */
+    private static boolean isInside(File dir, File f) {
+        try {
+            String d = dir.getCanonicalPath() + File.separator;
+            return f.getCanonicalPath().startsWith(d);
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     /**
-     * Returns the absolute path where the cover for this song will be stored.
-     * The file may not exist yet (copy is async) but the path is deterministic,
-     * so the UI can update optimistically before the copy finishes.
+     * Un archivo de audio solo se puede borrar si está en almacenamiento del usuario
+     * y NUNCA dentro de los datos privados de la app (la base, preferencias, etc.).
      */
+    private boolean isSafeUserFile(File f) {
+        try {
+            String c = f.getCanonicalPath();
+            if (isInside(appContext.getDataDir(), f)) return false;
+            if (appContext.getDataDir() != null && c.startsWith(appContext.getDataDir().getCanonicalPath())) return false;
+            String ext = Environment.getExternalStorageDirectory().getCanonicalPath();
+            return c.startsWith(ext + File.separator) || c.startsWith("/storage/");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ── Portadas ───────────────────────────────────────────────────────────────
+
     public String getExpectedCoverPath(long songId) {
         return new File(coversDir, "cover_" + songId + ".jpg").getAbsolutePath();
     }
 
-    /**
-     * Callback que notifica cuando la copia local del archivo de portada ha terminado.
-     * Sustituye los delays hardcodeados de 800/900ms que usaban PlayerActivity y SongsActivity.
-     */
     public interface CoverUpdateCallback {
         void onCoverReady(long songId, String localPath);
     }
 
-    /**
-     * Sobreescritura sin callback — mantiene compatibilidad con código que no necesita
-     * saber cuándo terminó la copia. Por defecto SÍ intenta escribir al archivo
-     * original (comportamiento histórico), para no romper otros usos existentes.
-     */
     public void updateSongCover(Song song, String coverUriStr) {
         updateSongCover(song, coverUriStr, true, null);
     }
 
-    /** Sobrecarga anterior — se mantiene por compatibilidad, intenta escribir al archivo. */
     public void updateSongCover(Song song, String coverUriStr, CoverUpdateCallback callback) {
         updateSongCover(song, coverUriStr, true, callback);
     }
 
     /**
-     * Copies the image at coverUri into filesDir/covers/ and stores the local
-     * path in the DB. Invoca el callback en el hilo principal cuando la copia termina.
+     * Copia la imagen a filesDir/covers/ (validando que sea una imagen) y guarda la
+     * ruta local en la DB. Si la copia falla NO se toca la portada actual.
      *
-     * @param writeToFile si es true, además intenta escribir la carátula en el
-     *                    archivo de audio original (comportamiento que antes era
-     *                    siempre automático). Si es false, el cambio queda SOLO
-     *                    dentro de la app — el archivo original nunca se toca.
-     *                    Para .opus, el llamador debe pasar false directamente
-     *                    (la librería de tags no soporta ese formato de todas
-     *                    formas, así que intentarlo es trabajo desperdiciado).
+     * @param writeToFile si es true, además escribe la carátula en el archivo de audio.
      */
     public void updateSongCover(Song song, String coverUriStr, boolean writeToFile,
                                 CoverUpdateCallback callback) {
         final long songId = song.getId();
         executor.execute(() -> {
-            String localPath = copyImageToCoversDir(songId, coverUriStr);
-            String pathToStore = (localPath != null) ? localPath : coverUriStr;
+            String localPath = copyImageToFile(coverUriStr,
+                    new File(coversDir, "cover_" + songId + ".jpg"));
+            if (localPath == null) {
+                toast("No se pudo guardar la imagen seleccionada");
+                return;
+            }
 
-            Song dbSong = db.songDao().getSongById(songId);
+            Song dbSong = db().songDao().getSongById(songId);
             if (dbSong != null) {
-                dbSong.setCustomCoverPath(pathToStore);
-                db.songDao().update(dbSong);
+                dbSong.setCustomCoverPath(localPath);
+                db().songDao().update(dbSong);
             } else {
-                song.setCustomCoverPath(pathToStore);
-                db.songDao().update(song);
+                song.setCustomCoverPath(localPath);
+                db().songDao().update(song);
             }
 
-            if (localPath != null && writeToFile) {
-                com.miku.player.utils.TagWriter.writeCover(appContext, song.getPath(), localPath,
-                    new com.miku.player.utils.TagWriter.Result() {
-                        public void onSuccess() {
-                            android.util.Log.d("MikuRepo", "Cover written to audio file tags");
-                        }
-                        public void onError(String msg) {
-                            android.util.Log.w("MikuRepo", "Could not write cover to tags: " + msg);
-                            // FIX: antes esto era completamente silencioso — la carátula
-                            // quedaba guardada solo en la app sin que el usuario supiera
-                            // que la escritura al archivo original había fallado.
-                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
-                                android.widget.Toast.makeText(appContext,
-                                    "La carátula se guardó en la app, pero no se pudo escribir en el archivo original",
-                                    android.widget.Toast.LENGTH_LONG).show());
-                        }
-                    });
+            if (writeToFile && !MediaStoreAccess.hasWriteGrant(appContext, song)) {
+                toast("Sin permiso del sistema: la carátula se guardó solo en la app");
+            } else if (writeToFile) {
+                TagWriter.writeCover(appContext, song.getPath(), MediaStoreAccess.ioTarget(song),
+                        localPath, new TagWriter.Result() {
+                    public void onSuccess() { Log.d(TAG, "Cover written to audio file tags"); }
+                    public void onError(String msg) {
+                        Log.w(TAG, "Could not write cover to tags: " + msg);
+                        toast("La carátula se guardó en la app, pero no se pudo escribir en el archivo original");
+                    }
+                });
             }
 
-            // Notificar al caller en el hilo principal cuando la ruta local ya existe
-            if (callback != null && localPath != null) {
-                new android.os.Handler(android.os.Looper.getMainLooper())
-                        .post(() -> callback.onCoverReady(songId, localPath));
+            if (callback != null) {
+                mainHandler.post(() -> callback.onCoverReady(songId, localPath));
             }
         });
     }
 
     /**
-     * Copies any URI-addressable image into filesDir/covers/cover_<id>.jpg.
-     * Returns the absolute path of the saved file, or null on failure.
+     * Copia una imagen (URI o content://) a {@code out} de forma atómica: escribe a un
+     * temporal, valida que se pueda decodificar como imagen y recién entonces reemplaza
+     * el destino. Devuelve la ruta final o null si algo falla (sin tocar el destino).
      */
-    private String copyImageToCoversDir(long songId, String uriStr) {
+    private String copyImageToFile(String uriStr, File out) {
+        File tmp = new File(out.getParentFile(), out.getName() + ".tmp");
         try {
-            android.net.Uri uri = android.net.Uri.parse(uriStr);
-            File outFile = new File(coversDir, "cover_" + songId + ".jpg");
-            try (java.io.InputStream in = resolver.openInputStream(uri);
-                 java.io.FileOutputStream out = new java.io.FileOutputStream(outFile)) {
+            Uri uri = Uri.parse(uriStr);
+            long total = 0;
+            try (InputStream in = resolver.openInputStream(uri)) {
                 if (in == null) return null;
-                byte[] buf = new byte[8192];
-                int n;
-                while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+                try (FileOutputStream fos = new FileOutputStream(tmp)) {
+                    byte[] buf = new byte[8192];
+                    int n;
+                    while ((n = in.read(buf)) != -1) {
+                        total += n;
+                        if (total > MAX_IMAGE_BYTES) throw new IOException("Imagen demasiado grande");
+                        fos.write(buf, 0, n);
+                    }
+                }
             }
-            return outFile.getAbsolutePath();
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(tmp.getAbsolutePath(), o);
+            if (o.outWidth <= 0 || o.outHeight <= 0) {
+                tmp.delete();
+                return null; // no es una imagen válida
+            }
+            if (out.exists() && !out.delete()) { tmp.delete(); return null; }
+            if (!tmp.renameTo(out)) { tmp.delete(); return null; }
+            return out.getAbsolutePath();
         } catch (Exception e) {
-            android.util.Log.e("MikuRepo", "Failed to copy cover image", e);
+            Log.e(TAG, "Failed to copy image", e);
+            tmp.delete();
             return null;
         }
+    }
+
+    private void toast(String msg) {
+        mainHandler.post(() -> Toast.makeText(appContext, msg, Toast.LENGTH_LONG).show());
     }
 
     // ── Custom title ─────────────────────────────────────────────────────────────
 
     /**
-     * Sets a custom display title for a song.
-     * Also writes the title into the audio file tags so other apps see it too.
-     * Pass null to revert to the original tag title.
+     * Guarda un título personalizado (DB inmediata) y lo escribe en las etiquetas del
+     * archivo en segundo plano. Los callbacks llegan en el hilo principal. El parámetro
+     * {@code activity} se conserva por compatibilidad pero ya no se captura (evita fugas).
      */
-    public void updateCustomTitle(com.miku.player.data.model.Song song, String newTitle,
-                                   android.app.Activity activity,
-                                   com.miku.player.utils.TagWriter.Result callback) {
-        final long songId = song.getId();
-        // 1. Persist custom title in DB immediately
-        fastExecutor.execute(() -> db.songDao().setCustomTitle(songId, newTitle));
+    public void updateCustomTitle(Song song, String newTitle, Activity activity,
+                                  TagWriter.Result callback) {
+        updateCustomTitle(song, newTitle, activity, true, callback);
+    }
 
-        // 2. Write to audio file tags in background
-        executor.execute(() -> {
-            com.miku.player.utils.TagWriter.writeTitle(activity, song.getPath(),
-                newTitle != null ? newTitle : song.getTitle(),
-                new com.miku.player.utils.TagWriter.Result() {
-                    public void onSuccess() {
-                        activity.runOnUiThread(() -> callback.onSuccess());
-                    }
-                    public void onError(String msg) {
-                        // DB is already updated — file write failing is non-critical
-                        activity.runOnUiThread(() -> callback.onError(msg));
-                    }
-                });
-        });
+    /**
+     * @param writeToFile si es false solo se guarda en la app (el archivo no se toca) y el
+     *                    callback recibe onSuccess de inmediato.
+     */
+    public void updateCustomTitle(Song song, String newTitle, Activity activity,
+                                  boolean writeToFile, TagWriter.Result callback) {
+        final long songId = song.getId();
+        final String path = song.getPath();
+        final String fallbackTitle = song.getTitle();
+        fastExecutor.execute(() -> db().songDao().setCustomTitle(songId, newTitle));
+
+        if (!writeToFile) {
+            mainHandler.post(callback::onSuccess);
+            return;
+        }
+        // Android 11+: sin el permiso del sistema no se puede tocar un archivo de otra app.
+        if (!MediaStoreAccess.hasWriteGrant(appContext, song)) {
+            mainHandler.post(() -> callback.onError(
+                    "sin permiso del sistema para modificar el archivo original"));
+            return;
+        }
+        final String ioTarget = MediaStoreAccess.ioTarget(song);
+
+        executor.execute(() -> TagWriter.writeTitle(appContext, path, ioTarget,
+                newTitle != null ? newTitle : fallbackTitle,
+                new TagWriter.Result() {
+                    public void onSuccess() { mainHandler.post(callback::onSuccess); }
+                    public void onError(String msg) { mainHandler.post(() -> callback.onError(msg)); }
+                }));
     }
 
     // ── Playlists ──────────────────────────────────────────────────────────────
 
     public LiveData<List<PlaylistWithSongs>> getAllPlaylistsWithSongs() {
-        return db.playlistDao().getAllPlaylistsWithSongs();
+        return db().playlistDao().getAllPlaylistsWithSongs();
     }
 
     public LiveData<PlaylistWithSongs> getPlaylistWithSongs(long id) {
-        return db.playlistDao().getPlaylistWithSongs(id);
+        return db().playlistDao().getPlaylistWithSongs(id);
     }
 
     public void createPlaylist(String name, Callback<Long> callback) {
         executor.execute(() -> {
-            long id = db.playlistDao().insertPlaylist(new Playlist(name));
+            long id = db().playlistDao().insertPlaylist(new Playlist(name));
             if (callback != null) callback.onResult(id);
         });
     }
 
     public void renamePlaylist(Playlist playlist, String newName) {
-        executor.execute(() -> { playlist.setName(newName); db.playlistDao().updatePlaylist(playlist); });
+        executor.execute(() -> { playlist.setName(newName); db().playlistDao().updatePlaylist(playlist); });
     }
 
     public void deletePlaylist(Playlist playlist) {
-        executor.execute(() -> db.playlistDao().deletePlaylist(playlist));
+        executor.execute(() -> {
+            db().playlistDao().deletePlaylist(playlist);
+            deleteOwnCoverFile(playlist.getCoverPath());
+        });
+    }
+
+    /** Borra un archivo de portada SOLO si está dentro de covers/ (nunca una ruta arbitraria). */
+    private void deleteOwnCoverFile(String path) {
+        if (path == null || !path.startsWith("/")) return;
+        try {
+            File f = new File(path);
+            if (f.exists() && isInside(coversDir, f)) f.delete();
+        } catch (Exception ignored) {}
     }
 
     /**
-     * Elimina una canción de la base de datos y, si deleteFile es true,
-     * también borra el archivo de audio del almacenamiento del dispositivo.
-     * Devuelve true en el callback si el archivo fue eliminado correctamente
-     * (o si deleteFile era false), false si hubo un error al borrar el archivo.
+     * Elimina una canción de la base (y de todas las playlists, renumerando posiciones)
+     * y, si deleteFile es true, también borra el archivo de audio.
      */
     public void deleteSong(Song song, boolean deleteFile, Callback<Boolean> callback) {
-        // Registrar el ID como "excluido" antes del scan para que no sea reinsertado
         excludedSongIds.add(song.getId());
+        saveExcluded();
         executor.execute(() -> {
-            // 1. Eliminar de la base de datos
-            db.songDao().delete(song);
+            final long songId = song.getId();
+            db().runInTransaction(() -> {
+                PlaylistDao pdao = db().playlistDao();
+                List<Long> affected = pdao.getPlaylistIdsForSong(songId);
+                pdao.removeSongFromAllPlaylists(songId);
+                db().songDao().delete(song);
+                for (Long pid : affected) renumberPlaylist(pid);
+            });
 
             boolean fileOk = true;
-            if (deleteFile) {
-                fileOk = deleteAudioFile(song);
-            }
+            if (deleteFile) fileOk = deleteAudioFile(song);
 
-            // 2. Eliminar también portada personalizada si existe
-            String coverPath = song.getCustomCoverPath();
-            if (coverPath != null && coverPath.startsWith("/")) {
-                try { new java.io.File(coverPath).delete(); } catch (Exception ignored) {}
-            }
+            deleteOwnCoverFile(song.getCustomCoverPath());
 
             final boolean result = fileOk;
-            if (callback != null) {
-                new android.os.Handler(android.os.Looper.getMainLooper())
-                        .post(() -> callback.onResult(result));
-            }
+            if (callback != null) mainHandler.post(() -> callback.onResult(result));
         });
     }
 
@@ -593,186 +784,135 @@ public class MusicRepository {
         if (path == null) return false;
         try {
             if (path.startsWith("content://")) {
-                android.net.Uri uri = android.net.Uri.parse(path);
-                // Intentar con DocumentsContract primero (SAF)
+                Uri uri = Uri.parse(path);
                 try {
-                    if (android.provider.DocumentsContract.isDocumentUri(appContext, uri)) {
-                        return android.provider.DocumentsContract.deleteDocument(resolver, uri);
+                    if (DocumentsContract.isDocumentUri(appContext, uri)) {
+                        return DocumentsContract.deleteDocument(resolver, uri);
                     } else if (path.contains("/tree/")) {
-                        // URI de árbol SAF — construir URI de documento
-                        android.net.Uri docUri = android.provider.DocumentsContract
-                                .buildDocumentUriUsingTree(uri,
-                                        android.provider.DocumentsContract.getTreeDocumentId(uri));
-                        return android.provider.DocumentsContract.deleteDocument(resolver, docUri);
+                        Uri docUri = DocumentsContract.buildDocumentUriUsingTree(uri,
+                                DocumentsContract.getTreeDocumentId(uri));
+                        return DocumentsContract.deleteDocument(resolver, docUri);
                     }
                 } catch (Exception ignored) {}
-                // Fallback: MediaStore o ContentResolver genérico
-                int deleted = resolver.delete(uri, null, null);
-                return deleted > 0;
+                return resolver.delete(uri, null, null) > 0;
             } else {
-                // Ruta absoluta del sistema de archivos
-                java.io.File file = new java.io.File(path);
-                if (file.exists()) {
-                    boolean deleted = file.delete();
-                    if (deleted) {
-                        // Notificar a MediaStore para que retire la canción de su índice
-                        try {
-                            resolver.delete(
-                                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                                android.provider.MediaStore.Audio.Media.DATA + "=?",
-                                new String[]{path});
-                        } catch (Exception ignored) {}
-                    }
-                    return deleted;
+                File file = new File(path);
+                if (!isSafeUserFile(file)) {
+                    Log.w(TAG, "Ruta fuera del almacenamiento del usuario, no se borra: " + path);
+                    return false;
                 }
-                return false;
+                if (!file.exists()) return false;
+                boolean deleted = file.delete();
+                if (deleted) {
+                    try {
+                        resolver.delete(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                                MediaStore.Audio.Media.DATA + "=?", new String[]{path});
+                    } catch (Exception ignored) {}
+                }
+                return deleted;
             }
         } catch (Exception e) {
-            android.util.Log.w("MikuRepo", "No se pudo eliminar el archivo: " + path, e);
+            Log.w(TAG, "No se pudo eliminar el archivo: " + path, e);
             return false;
         }
     }
 
     public LiveData<List<Song>> getSongsInPlaylist(long playlistId) {
-        return db.playlistDao().getSongsInPlaylist(playlistId);
+        return db().playlistDao().getSongsInPlaylist(playlistId);
     }
 
     public void addSongToPlaylist(long playlistId, Song song) {
         executor.execute(() -> {
             try {
-                Song existing = db.songDao().getSongById(song.getId());
-                if (existing == null) db.songDao().insert(song);
-                int alreadyIn = db.playlistDao().getSongCountInPlaylistBySong(playlistId, song.getId());
-                if (alreadyIn > 0) return;
-                int position = db.playlistDao().getSongCountInPlaylist(playlistId);
-                db.playlistDao().addSongToPlaylist(new PlaylistSong(playlistId, song.getId(), position));
+                db().runInTransaction(() -> {
+                    Song existing = db().songDao().getSongById(song.getId());
+                    if (existing == null) db().songDao().insert(song);
+                    PlaylistDao pdao = db().playlistDao();
+                    if (pdao.getSongCountInPlaylistBySong(playlistId, song.getId()) > 0) return;
+                    // MAX+1 (no COUNT): evita posiciones duplicadas tras quitar canciones.
+                    int position = pdao.getMaxPosition(playlistId) + 1;
+                    pdao.addSongToPlaylist(new PlaylistSong(playlistId, song.getId(), position));
+                });
             } catch (Exception e) {
-                android.util.Log.e("MikuRepo", "Failed to add song to playlist", e);
+                Log.e(TAG, "Failed to add song to playlist", e);
             }
         });
     }
 
     public void removeSongFromPlaylist(long playlistId, long songId) {
-        executor.execute(() -> db.playlistDao().removeSongFromPlaylistById(playlistId, songId));
+        executor.execute(() -> db().runInTransaction(() -> {
+            db().playlistDao().removeSongFromPlaylistById(playlistId, songId);
+            renumberPlaylist(playlistId);
+        }));
     }
 
-    /** Reorder songs in a playlist: updates all positions in one transaction */
-    public void reorderPlaylistSongs(long playlistId, List<Long> orderedSongIds) {
-        executor.execute(() -> {
-            for (int i = 0; i < orderedSongIds.size(); i++) {
-                db.playlistDao().updateSongPosition(playlistId, orderedSongIds.get(i), i);
+    /** Deja las posiciones de una playlist consecutivas (0..n-1) sin huecos ni duplicados. */
+    private void renumberPlaylist(long playlistId) {
+        PlaylistDao pdao = db().playlistDao();
+        List<PlaylistSong> entries = pdao.getPlaylistSongEntries(playlistId);
+        for (int i = 0; i < entries.size(); i++) {
+            if (entries.get(i).position != i) {
+                pdao.updateSongPosition(playlistId, entries.get(i).songId, i);
             }
-        });
+        }
     }
 
-    /**
-     * Persiste el orden manual (arrastrar y soltar) de las listas de reproducción.
-     * Igual criterio que reorderPlaylistSongs, pero a nivel de sortOrder de cada
-     * playlist. Se asignan valores DESCENDENTES (el primero de la lista recibe el
-     * valor más alto) porque la query ordena por sortOrder DESC — así una playlist
-     * recién creada (sortOrder = createdAt, un timestamp actual) sigue apareciendo
-     * primero hasta que el usuario la reordene manualmente.
-     */
+    /** Reordena las canciones de una playlist: todas las posiciones en UNA transacción. */
+    public void reorderPlaylistSongs(long playlistId, List<Long> orderedSongIds) {
+        executor.execute(() -> db().runInTransaction(() -> {
+            for (int i = 0; i < orderedSongIds.size(); i++) {
+                db().playlistDao().updateSongPosition(playlistId, orderedSongIds.get(i), i);
+            }
+        }));
+    }
+
+    /** Persiste el orden manual de las playlists (valores descendentes: sortOrder DESC). */
     public void reorderPlaylists(List<Long> orderedPlaylistIds) {
-        executor.execute(() -> {
+        executor.execute(() -> db().runInTransaction(() -> {
             int n = orderedPlaylistIds.size();
             for (int i = 0; i < n; i++) {
-                db.playlistDao().updatePlaylistSortOrder(orderedPlaylistIds.get(i), n - i);
+                db().playlistDao().updatePlaylistSortOrder(orderedPlaylistIds.get(i), n - i);
             }
-        });
+        }));
     }
 
     public void updatePlaylistCover(Playlist playlist, String coverPath) {
         executor.execute(() -> {
-            // FIX: antes se guardaba la URI content:// cruda del selector de imágenes
-            // directamente en la DB. Esa URI no sobrevive una reinstalación (ni estaba
-            // incluida en el respaldo, porque el respaldo solo empaqueta archivos
-            // reales dentro de filesDir/covers/). Ahora se copia localmente, igual que
-            // ya se hace con las portadas de canciones — así queda incluida en el
-            // respaldo automáticamente, sin tocar BackupManager.
-            String localPath = copyPlaylistCoverToCoversDir(playlist.getId(), coverPath);
-            playlist.setCoverPath(localPath != null ? localPath : coverPath);
-            db.playlistDao().updatePlaylist(playlist);
+            String localPath = copyImageToFile(coverPath,
+                    new File(coversDir, "playlist_cover_" + playlist.getId() + ".jpg"));
+            if (localPath == null) {
+                toast("No se pudo guardar la imagen seleccionada");
+                return;
+            }
+            playlist.setCoverPath(localPath);
+            db().playlistDao().updatePlaylist(playlist);
         });
     }
 
-    /**
-     * Quita la portada personalizada de una playlist — vuelve a mostrarse
-     * automáticamente la carátula de la primera canción (ver
-     * PlaylistWithSongs#getFirstSongByPosition, usado en la UI).
-     */
     public void removePlaylistCover(Playlist playlist) {
         executor.execute(() -> {
-            // Borra el archivo local que ya no se usa, si existe
-            String oldPath = playlist.getCoverPath();
-            if (oldPath != null && oldPath.startsWith("/")) {
-                try {
-                    java.io.File f = new java.io.File(oldPath);
-                    if (f.exists()) f.delete();
-                } catch (Exception ignored) {}
-            }
+            deleteOwnCoverFile(playlist.getCoverPath());
             playlist.setCoverPath(null);
-            db.playlistDao().updatePlaylist(playlist);
+            db().playlistDao().updatePlaylist(playlist);
         });
     }
 
-    /**
-     * Copies any URI-addressable image into filesDir/covers/playlist_cover_<id>.jpg.
-     * Mirror of copyImageToCoversDir() but for playlist covers. Returns the absolute
-     * path of the saved file, or null on failure (caller falls back to the raw URI).
-     */
-    private String copyPlaylistCoverToCoversDir(long playlistId, String uriStr) {
-        try {
-            android.net.Uri uri = android.net.Uri.parse(uriStr);
-            File outFile = new File(coversDir, "playlist_cover_" + playlistId + ".jpg");
-            try (java.io.InputStream in = resolver.openInputStream(uri);
-                 java.io.FileOutputStream out = new java.io.FileOutputStream(outFile)) {
-                if (in == null) return null;
-                byte[] buf = new byte[8192];
-                int n;
-                while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
-            }
-            return outFile.getAbsolutePath();
-        } catch (Exception e) {
-            android.util.Log.e("MikuRepo", "Failed to copy playlist cover image", e);
-            return null;
-        }
-    }
-
-    /**
-     * Resuelve el ALBUM_ID de MediaStore para una canción dado su path o URI.
-     * Se necesita para construir la URI correcta de albumart (albumart/<ALBUM_ID>).
-     * Devuelve -1 si no se encuentra.
-     */
+    /** ALBUM_ID de MediaStore para rutas de archivo reales (no aplica a documentos SAF). */
     private long resolveAlbumId(Song song) {
-        String[] proj = { MediaStore.Audio.Media.ALBUM_ID };
-        String sel;
-        String[] args;
         String path = song.getPath();
-        if (path.startsWith("content://")) {
-            // Para URIs SAF intentar buscar por nombre de archivo
-            sel  = MediaStore.Audio.Media.DISPLAY_NAME + " = ?";
-            args = new String[]{ path.substring(path.lastIndexOf('/') + 1) };
-        } else {
-            sel  = MediaStore.Audio.Media.DATA + " = ?";
-            args = new String[]{ path };
-        }
-        try (Cursor c = resolver.query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, proj, sel, args, null)) {
+        if (path == null || path.startsWith("content://")) return -1;
+        try (Cursor c = resolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                new String[]{MediaStore.Audio.Media.ALBUM_ID},
+                MediaStore.Audio.Media.DATA + " = ?", new String[]{path}, null)) {
             if (c != null && c.moveToFirst()) return c.getLong(0);
         } catch (Exception ignored) {}
         return -1;
     }
 
-    /** Observa en tiempo real solo la canción con ese ID (más eficiente que getAllSongs). */
-    public androidx.lifecycle.LiveData<Song> getSongByIdLive(long id) {
-        return db.songDao().getSongByIdLive(id);
+    public LiveData<Song> getSongByIdLive(long id) {
+        return db().songDao().getSongByIdLive(id);
     }
 
-    /**
-     * Cierra los ExecutorService cuando ya no se necesitan.
-     * Llamar desde Application.onTerminate() o pruebas unitarias.
-     */
     public void shutdown() {
         executor.shutdown();
         fastExecutor.shutdown();

@@ -120,10 +120,6 @@
         "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\anim\\item_fall_down.xml"
     },
     {
-        "merged": "com.miku.player.app-debug-41:/menu_menu_playlist_detail.xml.flat",
-        "source": "com.miku.player.app-main-43:/menu/menu_playlist_detail.xml"
-    },
-    {
         "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_check.xml.flat",
         "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_check.xml"
     },
@@ -236,6 +232,10 @@
         "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_favorites.xml"
     },
     {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_power.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_power.xml"
+    },
+    {
         "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-xhdpi_ic_launcher_foreground_full.png.flat",
         "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\mipmap-xhdpi\\ic_launcher_foreground_full.png"
     },
@@ -250,6 +250,10 @@
     {
         "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\layout_activity_main.xml.flat",
         "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\menu_menu_main.xml.flat",
+        "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\menu\\menu_main.xml"
     },
     {
         "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\mipmap-hdpi_ic_launcher.png.flat",
@@ -298,5 +302,9 @@
     {
         "merged": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-debug-41:\\drawable_ic_folder.xml.flat",
         "source": "C:\\Users\\josem\\.gradle\\daemon\\9.0.0\\com.miku.player.app-main-43:\\drawable\\ic_folder.xml"
+    },
+    {
+        "merged": "com.miku.player.app-debug-41:/menu_menu_main.xml.flat",
+        "source": "com.miku.player.app-main-43:/menu/menu_main.xml"
     }
 ]

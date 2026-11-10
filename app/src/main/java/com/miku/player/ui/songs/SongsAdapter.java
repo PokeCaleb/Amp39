@@ -176,7 +176,7 @@ public class SongsAdapter extends ListAdapter<Song, SongsAdapter.SongViewHolder>
 
             b.btnFavorite.setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
-                if (pos == RecyclerView.NO_ID) return;
+                if (pos == RecyclerView.NO_POSITION) return;
                 Song s = getItem(pos);
 
                 // Determine the new state we want
@@ -205,12 +205,12 @@ public class SongsAdapter extends ListAdapter<Song, SongsAdapter.SongViewHolder>
 
             b.getRoot().setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
-                if (listener != null && pos != RecyclerView.NO_ID)
+                if (listener != null && pos != RecyclerView.NO_POSITION)
                     listener.onSongClick(song, pos);
             });
             b.btnMore.setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
-                if (listener != null && pos != RecyclerView.NO_ID)
+                if (listener != null && pos != RecyclerView.NO_POSITION)
                     listener.onMoreClick(song, pos);
             });
         }

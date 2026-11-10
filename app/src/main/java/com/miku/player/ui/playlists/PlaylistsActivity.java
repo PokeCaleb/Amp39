@@ -153,7 +153,6 @@ public class PlaylistsActivity extends AppCompatActivity
         binding.btnMiniPlayPause.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.togglePlayPause(); });
         binding.btnMiniNext.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playNext(); });
         binding.btnMiniPrevious.setOnClickListener(v -> { ViewAnimUtils.pulse(v); pm.playPrevious(); });
-        startMiniProgressUpdater();
     }
 
     private final android.os.Handler miniProgressHandler =
@@ -237,6 +236,19 @@ public class PlaylistsActivity extends AppCompatActivity
         finish();
         ActivityTransitions.back(this);
         return true;
+    }
+
+    // El sondeo del progreso solo corre mientras la pantalla es visible (onStart..onStop).
+    @Override
+    protected void onStart() {
+        super.onStart();
+        startMiniProgressUpdater();
+    }
+
+    @Override
+    protected void onStop() {
+        miniProgressHandler.removeCallbacks(miniProgressRunnable);
+        super.onStop();
     }
 
     @Override

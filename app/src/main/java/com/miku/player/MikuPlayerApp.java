@@ -7,7 +7,7 @@ import android.os.Build;
 
 public class MikuPlayerApp extends Application {
 
-    public static final String CHANNEL_ID = "amp39_channel";
+    public static final String CHANNEL_ID = "miku_player_channel";
 
     @Override
     public void onCreate() {
@@ -18,7 +18,7 @@ public class MikuPlayerApp extends Application {
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID, "Amp39", NotificationManager.IMPORTANCE_LOW);
+                    CHANNEL_ID, getString(R.string.app_name), NotificationManager.IMPORTANCE_LOW);
             channel.setDescription("Controles de reproducción de música");
             channel.setShowBadge(false);
             NotificationManager nm = getSystemService(NotificationManager.class);

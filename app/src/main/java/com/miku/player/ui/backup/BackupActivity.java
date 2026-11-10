@@ -126,16 +126,22 @@ public class BackupActivity extends AppCompatActivity {
         executor.execute(() -> {
             try {
                 int covers = backupManager.importFromUri(zipUri);
-                AppDatabase.resetInstance();
                 runOnUiThread(() -> {
                     hideProgress();
                     new MaterialAlertDialogBuilder(this)
                             .setTitle("✓ Restauración completada")
                             .setMessage(
                                 "Listas y carátulas restauradas (" + covers + " imágenes).\n\n"
-                                + "La app se cerrará ahora para aplicar los cambios.")
-                            .setPositiveButton("Cerrar app", (d, w) ->
-                                    android.os.Process.killProcess(android.os.Process.myPid()))
+                                + "La app se cerrará ahora; vuelve a abrirla para ver los cambios.")
+                            .setPositiveButton("Cerrar app", (d, w) -> {
+                                // Cierre ordenado: primero se cierran las pantallas y
+                                // después el proceso, para que ninguna Activity consulte
+                                // la base ya reemplazada.
+                                finishAffinity();
+                                new android.os.Handler(android.os.Looper.getMainLooper())
+                                        .postDelayed(() -> android.os.Process.killProcess(
+                                                android.os.Process.myPid()), 300);
+                            })
                             .setCancelable(false)
                             .show();
                 });

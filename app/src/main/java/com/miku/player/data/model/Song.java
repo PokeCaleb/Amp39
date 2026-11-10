@@ -50,12 +50,13 @@ public class Song {
      * Returns the title to display: custom title if set, otherwise original tag title.
      */
     public String getDisplayTitle() {
-        return (customTitle != null && !customTitle.trim().isEmpty()) ? customTitle : title;
+        if (customTitle != null && !customTitle.trim().isEmpty()) return customTitle;
+        return title != null ? title : "";
     }
 
-    public String getArtist() { return artist; }
+    public String getArtist() { return artist != null ? artist : "Artista desconocido"; }
     public void setArtist(String artist) { this.artist = artist; }
-    public String getAlbum() { return album; }
+    public String getAlbum() { return album != null ? album : "Álbum desconocido"; }
     public void setAlbum(String album) { this.album = album; }
     public long getDuration() { return duration; }
     public void setDuration(long duration) { this.duration = duration; }

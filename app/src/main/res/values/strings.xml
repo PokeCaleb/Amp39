@@ -29,4 +29,34 @@
     <string name="new_playlist_hint">Nombre de la nueva lista…</string>
     <string name="favorites">Favoritos</string>
     <string name="add_to_favorites">Agregar a favoritos</string>
+
+    <!-- Acciones sobre una canción (borrar / renombrar / carátula) -->
+    <string name="song_delete_title">Eliminar canción</string>
+    <string name="song_delete_choose">¿Qué deseas hacer con \"%1$s\"?</string>
+    <string name="song_delete_file_btn">Eliminar archivo permanentemente</string>
+    <string name="song_remove_from_app">Quitar de la app</string>
+    <string name="song_delete_confirm_title">⚠ Eliminar archivo</string>
+    <string name="song_delete_confirm_msg">Esto borrará el archivo de audio del dispositivo. Esta acción no se puede deshacer.</string>
+    <string name="song_delete_confirm_btn">Eliminar permanentemente</string>
+    <string name="song_file_deleted">Archivo eliminado</string>
+    <string name="song_file_not_deleted">No se eliminó el archivo</string>
+    <string name="song_removed_file_failed">Eliminado de la app (no se pudo borrar el archivo)</string>
+    <string name="song_removed_from_app">Canción quitada de la app</string>
+    <string name="song_rename_title">Cambiar nombre</string>
+    <string name="song_rename_hint">Nombre de la canción</string>
+    <string name="song_rename_save">Guardar</string>
+    <string name="song_rename_reset">Restablecer original</string>
+    <string name="title_write_title">Guardar nombre</string>
+    <string name="title_write_message">¿Quieres guardar también el nombre en el archivo de audio original?\n\nSí: se modifica la etiqueta de título del archivo.\nNo: el nombre cambia solo dentro de la app; el archivo no se toca.</string>
+    <string name="title_write_yes">Sí</string>
+    <string name="title_write_no">No</string>
+    <string name="title_write_no_permission">Sin permiso para modificar el archivo: el nombre se guardó solo en la app</string>
+
+    <!-- Apagado de la app -->
+    <string name="shutdown_action">Apagar</string>
+    <string name="shutdown_title">Apagar la aplicación</string>
+    <string name="shutdown_message">La música se detendrá y la app se cerrará por completo.</string>
+    <string name="shutdown_confirm">Apagar</string>
+
+
 </resources>
