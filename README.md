@@ -76,7 +76,7 @@ El proyecto busca combinar funcionalidad, personalización y estabilidad en una 
 1. Clona este repositorio:
 
    ```bash
-   git clone https://github.com/TU-USUARIO/Amp39.git
+   git clone https://github.com/PokeCaleb/Amp39.git
    ```
 
 2. Abre el proyecto en Android Studio.
